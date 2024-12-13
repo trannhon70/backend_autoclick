@@ -1,0 +1,52 @@
+services:
+  app:
+    container_name: dockerrized_nestjs_container
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - ${EXTERNAL_APP_PORT}:${INTERNAL_APP_PORT}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: "npm run start:dev"
+    networks:
+      - nestjs_app_network
+
+  app_mysql:
+    image: mysql:8.0.39
+    container_name: app_mysql_container
+    restart: unless-stopped
+    ports:
+      - 3308:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: nestjs_app
+      MYSQL_PASSWORD: password
+    networks:
+      - nestjs_app_network
+    volumes:
+      - root_mysql_data:/var/lib/mysql
+
+  app_phpmyadmin:
+    image: phpmyadmin:5.2.1-apache
+    container_name: app_phpmyadmin_container
+    restart: unless-stopped
+    ports:
+      - "8844:80"
+    environment:
+      PMA_HOST: app_mysql
+      PMA_PORT: 3306
+      PMA_PASSWORD: password
+    networks:
+      - nestjs_app_network
+
+volumes:
+  root_mysql_data:
+    driver: local
+
+networks:
+  nestjs_app_network:
+    driver: bridge
