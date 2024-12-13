@@ -3,6 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { UserModule } from './user/user.module';
+import { User } from './user/entities/user.entity';
+import { RoleModule } from './role/role.module';
+import { Role } from './role/entities/role.entity';
 
 @Module({
   imports: [
@@ -16,22 +20,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         username: configService.get('DB_USERNAME'),
         database: configService.get('DB_DATABASE'),
         password: configService.get('DB_PASSWORD'),
-        entities: [],
+        entities: [User, Role],
         synchronize: configService.get('APP_ENV') === 'development',
         
       }),
       inject: [ConfigService]
     }),
-    // TypeOrmModule.forRoot({
-    //   type: 'mysql',
-    //   host: 'app_mysql',
-    //   port: 3306,
-    //   username: 'root',
-    //   password: 'password',
-    //   database: 'nestjs_app',
-    //   entities: [],
-    //   synchronize: true,
-    // }),
+    UserModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [AppService],
