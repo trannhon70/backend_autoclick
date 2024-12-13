@@ -8,8 +8,13 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('create')
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  async create(@Body() body: CreateUserDto) {
+    const data = await this.userService.create(body);
+    return {
+      statusCode: 1,
+      message: 'Tạo tài khoản thành công!',
+      data: data
+  };
   }
 
   @Get()

@@ -5,6 +5,7 @@ export class CreateUserDto {
         password: string;
      
         fullName: string;
+        roleId: number
     
         created_at: number;
 }

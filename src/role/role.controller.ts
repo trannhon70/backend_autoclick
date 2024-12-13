@@ -7,9 +7,14 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
-  @Post()
-  create(@Body() createRoleDto: CreateRoleDto) {
-    return this.roleService.create(createRoleDto);
+  @Post('create')
+  async create(@Body() body: CreateRoleDto) {
+    const data = await this.roleService.create(body);
+        return {
+            statusCode: 1,
+            message: 'Tạo phân quyền thành công!',
+            data: data,
+        };
   }
 
   @Get()
