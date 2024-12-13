@@ -12,8 +12,9 @@ services:
     ports:
       - ${EXTERNAL_APP_PORT}:${INTERNAL_APP_PORT}
     volumes:
-      - .:/app                # Liên kết mã nguồn từ máy chủ
-      - /app/node_modules     # Tránh ghi đè thư mục node_modules trong container
+      - ./src:/usr/src/app/src
+      # - .:/app                # Liên kết mã nguồn từ máy chủ vào container
+      # - /app/node_modules     # Tránh ghi đè thư mục node_modules trong container
     command: "npm run start:dev" # Chạy ứng dụng ở chế độ dev
     networks:
       - nestjs_app_network
@@ -35,10 +36,10 @@ services:
       - root_mysql_data:/var/lib/mysql
     healthcheck:
       test: mysqladmin ping -h 127.0.0.0 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
-      start_period: 5s
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      start_period: 3s
+      interval: 3s
+      timeout: 3s
+      retries: 3
 
   app_phpmyadmin:
     image: phpmyadmin:5.2.1-apache
