@@ -44,7 +44,17 @@ $ npm run start:dev
 # production mode
 $ npm run start:prod
 ```
+## docker
 
+```bash
+# xóa cache docker
+$ docker-compose down --volumes
+
+# chạy docker
+$ docker-compose up --build
+
+
+```
 ## Run tests
 
 ```bash
