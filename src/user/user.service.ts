@@ -32,7 +32,7 @@ export class UserService {
         email: body.email || '',
         password: hashPassword || '',
         fullName: body.fullName || '',
-        created_at: currentTimestamp(),
+        created_at: currentTimestamp(), 
     }
 
     const todo = this.userRepository.create(data);
