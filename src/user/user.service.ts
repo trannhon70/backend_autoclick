@@ -84,8 +84,31 @@ export class UserService {
     return `This action returns all user`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(req: any) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+      throw new Error('Authorization token is missing');
+    }
+    try {
+      const decoded = await this.jwtService.verify(token); // Assuming you use JWT
+      const userId = decoded.id; // Decoded token should contain user ID
+      // Fetch user data based on the userId
+     
+      const user = await this.userRepository.findOne(
+        {
+          where: { id: userId },
+          select: ['id', 'email', 'fullName', "role", 'created_at']
+        },
+      );
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      return user;
+    } catch (error) {
+      throw new Error('Invalid token or user not found');
+    }
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
