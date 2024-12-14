@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Res } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { LoginUserDto } from './dto/login-user.dto';
+import { ClientIp } from 'common/checkIp';
 
 @Controller('user')
 export class UserController {
@@ -14,7 +16,18 @@ export class UserController {
       statusCode: 1,
       message: 'Tạo tài khoản thành công!',
       data: data
-  };
+    };
+  }
+
+  @Post('login')
+  async login(@Body() body: LoginUserDto,@ClientIp() ip: string) {
+      const data = await this.userService.login(body,ip);
+      return {
+          statusCode: 1,
+          message: 'Đăng nhập thành công!',
+          token: data.token,
+          user: data.user 
+      };
   }
 
   @Get()
