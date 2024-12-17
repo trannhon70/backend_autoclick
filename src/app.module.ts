@@ -7,6 +7,7 @@ import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
 import { RoleModule } from './role/role.module';
 import { Role } from './role/entities/role.entity';
+import { CrawlerModule } from './crawler/crawler.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { Role } from './role/entities/role.entity';
     }),
     UserModule,
     RoleModule,
+    CrawlerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
