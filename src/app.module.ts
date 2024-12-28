@@ -9,6 +9,7 @@ import { RoleModule } from './role/role.module';
 import { Role } from './role/entities/role.entity';
 import { CityModule } from './city/city.module';
 import { City } from './city/entities/city.entity';
+import { DistrictModule } from './district/district.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { City } from './city/entities/city.entity';
     UserModule,
     RoleModule,
     CityModule,
+    DistrictModule,
   ],
   controllers: [AppController],
   providers: [AppService],
