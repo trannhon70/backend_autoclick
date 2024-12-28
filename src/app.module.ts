@@ -7,6 +7,8 @@ import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
 import { RoleModule } from './role/role.module';
 import { Role } from './role/entities/role.entity';
+import { CityModule } from './city/city.module';
+import { City } from './city/entities/city.entity';
 
 @Module({
   imports: [
@@ -20,7 +22,7 @@ import { Role } from './role/entities/role.entity';
         username: configService.get('DB_USERNAME'),
         database: configService.get('DB_DATABASE'),
         password: configService.get('DB_PASSWORD'),
-        entities: [User, Role],
+        entities: [User, Role, City],
         synchronize: configService.get('APP_ENV') === 'development',
         
       }),
@@ -28,6 +30,7 @@ import { Role } from './role/entities/role.entity';
     }),
     UserModule,
     RoleModule,
+    CityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -21,7 +21,7 @@ export class User {
     //ngày sinh
     @Column()
     date: number;
-    
+
     //họ và tên
     @IsNotEmpty()
     @Column({ nullable: true }) // Không bắt buộc
@@ -43,6 +43,10 @@ export class User {
     @Column() // Không bắt buộc
     address: string;
 
+    //hình ảnh
+    @Column() // Không bắt buộc
+    avatar: string;
+
     // phân quyên
     @ManyToOne(() => Role, (role) => role.users, { eager: true })
     @JoinColumn({ name: 'roleId' })
@@ -52,11 +56,11 @@ export class User {
     roleId: number;
 
     //thời gian update
-    @Column()  
+    @Column()
     created_update: number;
 
     //thời gian tạo
-    @Column()  
+    @Column()
     created_at: number;
 
 }
