@@ -10,6 +10,7 @@ import { Role } from './role/entities/role.entity';
 import { CityModule } from './city/city.module';
 import { City } from './city/entities/city.entity';
 import { DistrictModule } from './district/district.module';
+import { District } from './district/entities/district.entity';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { DistrictModule } from './district/district.module';
         username: configService.get('DB_USERNAME'),
         database: configService.get('DB_DATABASE'),
         password: configService.get('DB_PASSWORD'),
-        entities: [User, Role, City],
+        entities: [User, Role, City, District],
         synchronize: configService.get('APP_ENV') === 'development',
         
       }),
