@@ -7,11 +7,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthMiddleware } from 'common/middleware/auth.middleware';
 import { LoggerMiddleware } from 'common/middleware/logger.middleware';
 import { CustomJwtModule } from 'common/auth/auth.module';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports:[
     TypeOrmModule.forFeature([Role, User]),
     CustomJwtModule,
+    RedisModule
 ],
   controllers: [RoleController],
   providers: [RoleService],

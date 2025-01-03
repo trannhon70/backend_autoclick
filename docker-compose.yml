@@ -1,8 +1,11 @@
+version: '3.8'
 services:
   app:
     container_name: dockerrized_nestjs_container
     depends_on:
       app_mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     build:
       context: .
@@ -35,7 +38,7 @@ services:
     volumes:
       - root_mysql_data:/var/lib/mysql
     healthcheck:
-      test: mysqladmin ping -h 127.0.0.0 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
       start_period: 3s
       interval: 3s
       timeout: 3s
@@ -57,8 +60,27 @@ services:
     networks:
       - nestjs_app_network
 
+  redis:
+    image: redis:latest
+    container_name: redis_container
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    networks:
+      - nestjs_app_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
 volumes:
   root_mysql_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:
