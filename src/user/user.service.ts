@@ -9,6 +9,8 @@ import * as bcrypt from 'bcryptjs';
 import { currentTimestamp } from 'utils/currentTimestamp';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
+import { RedisService } from 'src/redis/redis.service';
+import { expirationTime } from "utils";
 
 let saltOrRounds = 10;
 
@@ -19,7 +21,8 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
-    private readonly jwtService: JwtService // Inject JwtService
+    private readonly jwtService: JwtService, // Inject JwtService
+    private readonly redisService: RedisService,
   ) { }
   async create(body: CreateUserDto) {
     const roleExists = await this.roleRepository.findOne({ where: { id: body.roleId } });
@@ -59,6 +62,14 @@ export class UserService {
     if (!isMatch) {
       throw new BadRequestException('Password không đúng');
     }
+
+    // Kiểm tra Redis xem có phiên đăng nhập nào chưa
+    const currentSession = await this.redisService.getKey(`user:${user.id}:session`);
+
+    if (currentSession) {
+        // Hủy token cũ
+        await this.redisService.delKey(`user:${user.id}:session`);
+    }
     const payload = {
       email: user.email,
       id: user.id,
@@ -66,10 +77,19 @@ export class UserService {
       role: user.role,
     };
 
-    const token = this.jwtService.sign(payload);
+    const sessionToken = this.jwtService.sign(payload);
+
+    // Lưu token mới vào Redis với thời gian hết hạn
+    
+    const sessionData = {
+        token: sessionToken,
+        expiresAt: Date.now() + expirationTime,
+    };
+
+    await this.redisService.setKey(`user:${user.id}:session`, JSON.stringify(sessionData), expirationTime / 1000);
 
     return {
-      token: token,
+      token: sessionToken,
       user: {
         email: user.email,
         id: user.id,
@@ -94,7 +114,7 @@ export class UserService {
       const decoded = await this.jwtService.verify(token); // Assuming you use JWT
       const userId = decoded.id; // Decoded token should contain user ID
       // Fetch user data based on the userId
-     
+
       const user = await this.userRepository.findOne(
         {
           where: { id: userId },
@@ -107,6 +127,7 @@ export class UserService {
 
       return user;
     } catch (error) {
+
       throw new Error('Invalid token or user not found');
     }
   }

@@ -25,7 +25,7 @@ export class UserModule implements NestModule {
       consumer
         .apply(AuthMiddleware, LoggerMiddleware) 
         .forRoutes( 
-         //  { path: 'user/create', method: RequestMethod.POST },
+          { path: 'user/get-by-id-user', method: RequestMethod.GET },
           
       ); 
   }
