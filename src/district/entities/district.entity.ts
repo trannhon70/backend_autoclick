@@ -35,5 +35,5 @@ export class District {
     longitude: string;
 
     @Column()
-    created_at: string;
+    created_at: number;
 }

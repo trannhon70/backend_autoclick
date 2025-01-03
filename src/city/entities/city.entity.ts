@@ -28,5 +28,5 @@ export class City {
 
 
     @Column()
-    created_at: string;
+    created_at: number;
 }

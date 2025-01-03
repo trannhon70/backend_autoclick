@@ -42,7 +42,7 @@ export class DistrictService {
                 full_name_en: district.full_name_en,
                 latitude: district.latitude,
                 longitude: district.longitude,
-                created_at: currentTimestamp(),
+                created_at: currentTimestamp(), 
               };
             });
       

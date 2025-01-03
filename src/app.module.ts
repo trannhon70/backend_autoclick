@@ -11,6 +11,8 @@ import { CityModule } from './city/city.module';
 import { City } from './city/entities/city.entity';
 import { DistrictModule } from './district/district.module';
 import { District } from './district/entities/district.entity';
+import { WardModule } from './ward/ward.module';
+import { Ward } from './ward/entities/ward.entity';
 
 @Module({
   imports: [
@@ -24,7 +26,7 @@ import { District } from './district/entities/district.entity';
         username: configService.get('DB_USERNAME'),
         database: configService.get('DB_DATABASE'),
         password: configService.get('DB_PASSWORD'),
-        entities: [User, Role, City, District],
+        entities: [User, Role, City, District, Ward],
         synchronize: configService.get('APP_ENV') === 'development',
         
       }),
@@ -34,6 +36,7 @@ import { District } from './district/entities/district.entity';
     RoleModule,
     CityModule,
     DistrictModule,
+    WardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
