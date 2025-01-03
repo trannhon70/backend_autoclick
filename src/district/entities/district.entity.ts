@@ -9,12 +9,15 @@ export class District {
     id: string;
 
     @Column()
+    id_code:string; 
+
+    @Column()
     cityId:number;
     @ManyToOne(() => City, (city) => city.id)
     city: City;
 
     @Column()
-    name: string;
+    name: string; 
 
     @Column()
     name_en: string;

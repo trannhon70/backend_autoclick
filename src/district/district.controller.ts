@@ -13,7 +13,6 @@ export class DistrictController {
         const data = await this.districtService.create(req, body);
         return {
             statusCode: 1,
-            length: data.length,
             message: 'create district suscess!',
             data: data,
         };

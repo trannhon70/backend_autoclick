@@ -6,7 +6,7 @@ export class City {
     id: string; 
 
     @Column()
-    id_code:number; 
+    id_code:string; 
 
     @Column()
     name: string;

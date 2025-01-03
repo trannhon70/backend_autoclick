@@ -16,48 +16,52 @@ export class DistrictService {
     @InjectRepository(City)
     private readonly cityRepository: Repository<City>,
     private readonly jwtService: JwtService
-) { }
-async create(req: any, body: any) {
-  try {
-    const cities = await this.cityRepository.findOne({
-      where: { id: ''},
-    });
-
-    const response = await fetch(`https://esgoo.net/api-tinhthanh/2/${cities.id_code}.htm`);
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
+  ) { }
+  async create(req: any, body: any) {
+    try {
+      const cities = await this.cityRepository.find();
+  
+      // Sử dụng Promise.all để đợi tất cả các lời gọi API
+      const results = await Promise.all(
+        cities.map(async (item: any) => {
+          const response = await fetch(`https://esgoo.net/api-tinhthanh/2/${item.id_code}.htm`);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch data for city: ${item.id_code}`);
+          }
+  // đá
+          const data = await response.json(); 
+          const result = data.data;
+          if (Array.isArray(result)) {
+            const districts : any = result.map((district: any) => {
+              return {
+                cityId: item.id,
+                name: district.name,
+                id_code: district.id,
+                name_en: district.name_en,
+                full_name: district.full_name,
+                full_name_en: district.full_name_en,
+                latitude: district.latitude,
+                longitude: district.longitude,
+                created_at: currentTimestamp(),
+              };
+            });
+      
+            // Lưu mảng các quận/huyện vào cơ sở dữ liệu
+            return await this.districtRepository.save(districts);
+          } else {
+            console.error('Result is not an array or is null:', result);
+          }
+        })
+      );
+  
+      // Trả về kết quả sau khi hoàn tất
+      return results;
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+      throw error; // Ném lỗi để hàm gọi biết được có lỗi xảy ra
     }
-
-    const data = await response.json();
-    const result = data.data;
-    console.log(result)
-
-    // Kiểm tra nếu result không phải là null hoặc undefined và là một mảng
-    if (Array.isArray(result)) {
-      const districts : any = result.map((district: any) => {
-        return {
-          cityId: cities.id,
-          name: district.name,
-          name_en: district.name_en,
-          full_name: district.full_name,
-          full_name_en: district.full_name_en,
-          latitude: district.latitude,
-          longitude: district.longitude,
-          created_at: currentTimestamp(),
-        };
-      });
-
-      console.log(districts);
-
-      // Lưu mảng các quận/huyện vào cơ sở dữ liệu
-      return await this.districtRepository.save(districts);
-    } else {
-      console.error('Result is not an array or is null:', result);
-    }
-  } catch (error) {
-    console.error('Error fetching districts:', error);
   }
-}
+  
 
   findAll() {
     return `This action returns all district`;
