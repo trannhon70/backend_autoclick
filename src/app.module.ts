@@ -11,6 +11,8 @@ import { CityModule } from './city/city.module';
 import { City } from './city/entities/city.entity';
 import { DistrictModule } from './district/district.module';
 import { District } from './district/entities/district.entity';
+import { ProxyModule } from './proxy/proxy.module';
+import { ChatService } from './chat/chat.service';
 
 @Module({
   imports: [
@@ -34,8 +36,9 @@ import { District } from './district/entities/district.entity';
     RoleModule,
     CityModule,
     DistrictModule,
+    ProxyModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ChatService],
 })
 export class AppModule {}
