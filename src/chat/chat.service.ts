@@ -6,6 +6,8 @@ const AnonymizeUAPlugin = require('puppeteer-extra-plugin-anonymize-ua');
 puppeteer.use(StealthPlugin());
 puppeteer.use(AnonymizeUAPlugin({ stripHeadless: true, makeWindows: true }));
 
+const testInput = 'Chào bác sĩ';
+
 // Fake iPhone 12
 const iPhone12 = {
     name: 'iPhone 12',
@@ -39,7 +41,7 @@ export class ChatService {
     ];
 
     async autoChat() {
-        const batchSize = 5;
+        const batchSize = 1;
         for (let i = 0; i < this.urls.length; i += batchSize) {
             const batch = this.urls.slice(i, i + batchSize);
             console.log(`🚀 Chạy batch ${i / batchSize + 1}:`, batch.length, 'page');
@@ -112,20 +114,44 @@ export class ChatService {
                     timeout: 120000,
                     waitUntil: 'domcontentloaded',
                 });
+
+                // Đợi 30 giây trước khi thao tác tiếp
+                await new Promise(r => setTimeout(r, 40000));
+
+                // Đợi iframe xuất hiện trên trang
+                const iframeElementHandle = await page.waitForSelector('#LR_miniframe');
+
+                // Lấy frame con từ iframe này
+                const frame = await iframeElementHandle.contentFrame();
+
+                if (!frame) {
+                    throw new Error('Không thể lấy frame từ iframe');
+                }
+
+                // Sau đó thao tác với frame này thay vì page
+                await frame.waitForSelector('#texteditor');
+                await frame.waitForSelector('#sentButton');
+
+                // Ví dụ lấy html trong iframe
+                const htmlInFrame = await frame.content();
+                // console.log(htmlInFrame);
+
+                // Điền text vào textarea trong iframe
+                await frame.evaluate((text) => {
+                    const textarea = document.querySelector('#texteditor') as HTMLTextAreaElement;
+                    if (textarea) {
+                        textarea.value = text;
+                        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }, testInput);
+
+                // Click nút gửi trong iframe
+                await frame.click('#sentButton');
+
             } catch (err) {
                 console.error(`❌ Lỗi khi vào URL:`, err.message);
             }
-            // // Sau 5s thì reload lại trang
-            // setTimeout(async () => {
-            //     if (!page.isClosed()) {
-            //         console.log(`🔄 Reload lại trang (Proxy ${proxy.host})`);
-            //         try {
-            //             await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
-            //         } catch (err) {
-            //             console.error(`❌ Reload lỗi với proxy ${proxy.host}:`, err.message);
-            //         }
-            //     }
-            // }, 5000);
+
             // Test IP thật sự đang dùng
             const ip = await page.evaluate(() =>
                 fetch('https://api.ipify.org?format=json').then(res => res.json())
@@ -134,7 +160,7 @@ export class ChatService {
 
             // Chờ tương tác
             console.log(`✅ Page loaded (Proxy ${proxy.host}): ${url}`);
-            await new Promise(res => setTimeout(res, 2 * 60 * 1000)); // chờ 2 phút
+            await new Promise(res => setTimeout(res, 3 * 60 * 1000)); // chờ 2 phút
 
         } catch (err) {
             console.error(`❌ Lỗi page với proxy ${proxy.host}:`, err.message);
