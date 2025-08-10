@@ -3,11 +3,10 @@ import puppeteer from 'puppeteer-extra';
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const AnonymizeUAPlugin = require('puppeteer-extra-plugin-anonymize-ua');
 
-// Chỉ bật một số evasions cần thiết
 puppeteer.use(StealthPlugin());
 puppeteer.use(AnonymizeUAPlugin({ stripHeadless: true, makeWindows: true }));
 
-// Fake cấu hình iPhone 12
+// Fake iPhone 12
 const iPhone12 = {
     name: 'iPhone 12',
     userAgent:
@@ -24,115 +23,121 @@ const iPhone12 = {
 
 @Injectable()
 export class ChatService {
-    private urls = Array(20).fill('https://andongclinic.vn/tu-van-nam-khoa-online-mien-phi-voi-bac-si-chuyen-khoa-gioi-79.html?10300007&gad_source=1&gad_campaignid=21655283444&gbraid=0AAAAA-KzdWiw56y31NZg9Ng1K56g5OT1K&gclid=EAIaIQobChMI7e7-kbj-jgMVaOgWBR1UMxcfEAAYASADEgIi_PD_BwE'); // Danh sách URL cần mở
+    // URL và Proxy tương ứng
+    private urls = Array(20).fill('https://namkhoa.phongkhamdakhoathangtam.vn/phong-kham-nam-khoa-thang-tam-dia-chi-kham-chua-benh-nam-khoa-uy-tin-tai-tphcm-2813.html');
+    private proxies = [
+        { host: '23.95.150.145', port: 6114, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '198.23.239.134', port: 6540, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '45.38.107.97', port: 6014, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '207.244.217.165', port: 6712, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '107.172.163.27', port: 6543, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '104.222.161.211', port: 6343, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '64.137.96.74', port: 6641, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '216.10.27.159', port: 6837, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '136.0.207.84', port: 6661, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+        { host: '142.147.128.93', port: 6593, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    ];
 
     async autoChat() {
-        const batchSize = 3; // Số page chạy song song
+        const batchSize = 5;
         for (let i = 0; i < this.urls.length; i += batchSize) {
             const batch = this.urls.slice(i, i + batchSize);
             console.log(`🚀 Chạy batch ${i / batchSize + 1}:`, batch.length, 'page');
 
-            await Promise.all(batch.map((url) => this.runSinglePage(url)));
+            await Promise.all(batch.map((url, idx) => {
+                const proxy = this.proxies[(i + idx) % this.proxies.length];
+                return this.runSinglePage(url, proxy);
+            }));
 
-            // Delay giữa các batch
             await new Promise((res) => setTimeout(res, 3000));
         }
     }
 
-    private async runSinglePage(url: string) {
+    private async runSinglePage(url: string, proxy: { host: string, port: number, user?: string, pass?: string }) {
+        const proxyArg = `--proxy-server=http://${proxy.host}:${proxy.port}`;
+
         const browser = await puppeteer.launch({
             headless: false,
             args: [
-                `--user-data-dir=D:\\puppeteer_profile`, // Chuyển toàn bộ cache sang ổ D
-                '--use-fake-ui-for-media-stream',
-                '--use-fake-device-for-media-stream',
+                proxyArg,
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
+                `--user-data-dir=D:\\puppeteer_profile_${Date.now()}`,
+                '--use-fake-ui-for-media-stream',
+                '--use-fake-device-for-media-stream',
+
+                // Chặn WebRTC leak
+                '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+                '--webrtc-ip-handling-policy=default_public_interface_only',
+                '--webrtc-multiple-routes-disabled=true',
+                '--disable-webrtc',
             ],
         });
 
         try {
+            const page = await browser.newPage();
             const context = browser.defaultBrowserContext();
             await context.overridePermissions(url, []);
+            // Auth proxy nếu cần
+            if (proxy.user && proxy.pass) {
+                await page.authenticate({
+                    username: proxy.user,
+                    password: proxy.pass,
+                });
+            }
 
-            const page = await browser.newPage();
-
-            // Emulate iPhone 12
+            // Fake iPhone
             await page.emulate(iPhone12);
 
-            // Random timezone
-            const timezones = [
-                'America/New_York',
-                'Europe/London',
-                'Asia/Tokyo',
-                'Asia/Ho_Chi_Minh',
-            ];
-            await page.emulateTimezone(
-                timezones[Math.floor(Math.random() * timezones.length)],
-            );
-
-            // Random language
-            const languages = [
-                ['en-US', 'en'],
-                ['vi-VN', 'vi'],
-                ['ja-JP', 'ja'],
-            ];
-            await page.evaluateOnNewDocument((langs) => {
-                Object.defineProperty(navigator, 'languages', { get: () => langs });
-            }, languages[Math.floor(Math.random() * languages.length)]);
-
-            // Fake deviceId khác nhau cho từng page
+            // Patch WebRTC để chặn IP leak
             await page.evaluateOnNewDocument(() => {
-                const randomId = () =>
-                    Math.random().toString(36).substring(2) +
-                    Date.now().toString(36) +
-                    Math.floor(Math.random() * 10000);
-
-                Object.defineProperty(navigator, 'mediaDevices', {
-                    value: {
-                        enumerateDevices: async () => [
-                            { kind: 'videoinput', label: 'HD Camera', deviceId: randomId(), groupId: randomId() },
-                            { kind: 'audioinput', label: 'Microphone', deviceId: randomId(), groupId: randomId() },
-                            { kind: 'audiooutput', label: 'Speaker', deviceId: randomId(), groupId: randomId() },
-                        ],
-                    },
-                    configurable: true,
-                });
-            });
-
-            // Patch quyền truy cập
-            await page.evaluateOnNewDocument(() => {
-                const originalQuery = (window.navigator.permissions
-                    .query as any).bind(window.navigator.permissions);
-                window.navigator.permissions.query = (parameters: PermissionDescriptor) => {
-                    if (
-                        ['geolocation', 'camera', 'microphone', 'notifications'].includes(
-                            parameters.name,
-                        )
-                    ) {
-                        return Promise.resolve({ state: 'granted' } as any);
-                    }
-                    return originalQuery(parameters);
-                };
+                const origPeer = window.RTCPeerConnection || (window as any).webkitRTCPeerConnection;
+                if (origPeer) {
+                    window.RTCPeerConnection = function (...args) {
+                        const pc = new origPeer(...args);
+                        pc.createDataChannel('');
+                        pc.createOffer = async function (...args) {
+                            const offer = await origPeer.prototype.createOffer.apply(pc, args);
+                            offer.sdp = offer.sdp.replace(/(candidate:.*\s)/g, '');
+                            return offer;
+                        };
+                        return pc;
+                    } as any;
+                }
             });
 
             // Mở URL
-            await page.goto(url, {
-                timeout: 120000,
-                waitUntil: 'domcontentloaded',
-            });
+            try {
+                await page.goto(url, {
+                    timeout: 120000,
+                    waitUntil: 'domcontentloaded',
+                });
+            } catch (err) {
+                console.error(`❌ Lỗi khi vào URL:`, err.message);
+            }
+            // // Sau 5s thì reload lại trang
+            // setTimeout(async () => {
+            //     if (!page.isClosed()) {
+            //         console.log(`🔄 Reload lại trang (Proxy ${proxy.host})`);
+            //         try {
+            //             await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
+            //         } catch (err) {
+            //             console.error(`❌ Reload lỗi với proxy ${proxy.host}:`, err.message);
+            //         }
+            //     }
+            // }, 5000);
+            // Test IP thật sự đang dùng
+            const ip = await page.evaluate(() =>
+                fetch('https://api.ipify.org?format=json').then(res => res.json())
+            );
+            console.log(`🌐 IP detect (Proxy ${proxy.host}): ${ip.ip}`);
 
-            console.log(`✅ Page loaded: ${url}`);
+            // Chờ tương tác
+            console.log(`✅ Page loaded (Proxy ${proxy.host}): ${url}`);
+            await new Promise(res => setTimeout(res, 2 * 60 * 1000)); // chờ 2 phút
 
-            // Giữ page 5s rồi reload
-            // await new Promise(res => setTimeout(res, 50000));
-            await new Promise(res => setTimeout(res, 5 * 60 * 1000));
-            await page.reload({ waitUntil: 'domcontentloaded' });
-            console.log(`🔄 Page reloaded: ${url}`);
-
-            await new Promise(res => setTimeout(res, 2000));
         } catch (err) {
-            console.error('❌ Lỗi page:', err.message);
+            console.error(`❌ Lỗi page với proxy ${proxy.host}:`, err.message);
         } finally {
             await browser.close();
         }

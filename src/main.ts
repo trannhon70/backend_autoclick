@@ -17,7 +17,7 @@ async function bootstrap() {
   // Gửi chat mỗi 10 giây
   setInterval(() => {
     chatService.autoChat();
-  }, 15000);
+  }, 60000);
 
   const configService = app.get(ConfigService);
   const port  = configService.get('INTERNAL_APP_PORT')

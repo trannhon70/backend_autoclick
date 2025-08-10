@@ -107,3 +107,27 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+
+# proxy
+$ https://dashboard.webshare.io/proxy/list?authenticationMethod=%22username_password%22&connectionMethod=%22direct%22&proxyControl=%220%22&rowsPerPage=10&page=0&order=%22asc%22&orderBy=null&searchValue=%22%22&removeType=%22refresh_all%22
+
+private proxies = [
+    'http://fpkkmquz:hh4q5mpyf5g5@23.95.150.145:6114',
+    'http://fpkkmquz:hh4q5mpyf5g5@198.23.239.134:6540',
+    'http://fpkkmquz:hh4q5mpyf5g5@45.38.107.97:6014',
+    'http://fpkkmquz:hh4q5mpyf5g5@207.244.217.165:6712',
+
+    'http://fpkkmquz:hh4q5mpyf5g5@107.172.163.27:6543',
+
+    'http://fpkkmquz:hh4q5mpyf5g5@104.222.161.211:6343',
+
+    'http://fpkkmquz:hh4q5mpyf5g5@64.137.96.74:6641',
+
+    'http://fpkkmquz:hh4q5mpyf5g5@216.10.27.159:6837',
+
+    'http://fpkkmquz:hh4q5mpyf5g5@136.0.207.84:6661',
+
+    'http://fpkkmquz:hh4q5mpyf5g5@142.147.128.93:6593',
+    // Thêm proxy khác nếu muốn
+  ];
