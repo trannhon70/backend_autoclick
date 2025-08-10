@@ -11,7 +11,8 @@ puppeteer.use(AnonymizeUAPlugin({ stripHeadless: true, makeWindows: true }));
 @Injectable()
 export class ChatService {
     async autoChat() {
-        const browser = await puppeteer.launch({
+       try {
+             const browser = await puppeteer.launch({
             headless: false,
             args: [
                 '--use-fake-ui-for-media-stream',
@@ -51,7 +52,7 @@ export class ChatService {
         });
 
         await page.goto('https://vnbacsionline.com', {
-            timeout: 0,
+            timeout: 60000,
             waitUntil: 'networkidle2',
         });
 
@@ -62,5 +63,8 @@ export class ChatService {
         // Reload trang
         await page.reload({ waitUntil: 'networkidle2' });
         console.log('Page reloaded');
+       } catch (error) {
+        throw error
+       }
     }
 }
