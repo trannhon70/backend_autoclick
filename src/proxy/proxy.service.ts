@@ -34,21 +34,23 @@ const iPhone12 = {
 @Injectable()
 export class ProxyService {
     private readonly logger = new Logger(ProxyService.name);
+    // // URL và Proxy tương ứng
+    // private urls = Array(20).fill('https://namkhoa.phongkhamdakhoathangtam.vn/phong-kham-nam-khoa-thang-tam-dia-chi-kham-chua-benh-nam-khoa-uy-tin-tai-tphcm-2813.html');
+    // private proxies = [
+    //     { host: '23.95.150.145', port: 6114, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '198.23.239.134', port: 6540, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '45.38.107.97', port: 6014, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '207.244.217.165', port: 6712, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '107.172.163.27', port: 6543, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '104.222.161.211', port: 6343, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '64.137.96.74', port: 6641, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '216.10.27.159', port: 6837, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '136.0.207.84', port: 6661, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    //     { host: '142.147.128.93', port: 6593, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
+    // ];
+    private isStopped = false;
 
-    // URL và Proxy tương ứng
-    private urls = Array(20).fill('https://namkhoa.phongkhamdakhoathangtam.vn/phong-kham-nam-khoa-thang-tam-dia-chi-kham-chua-benh-nam-khoa-uy-tin-tai-tphcm-2813.html');
-    private proxies = [
-        { host: '23.95.150.145', port: 6114, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '198.23.239.134', port: 6540, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '45.38.107.97', port: 6014, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '207.244.217.165', port: 6712, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '107.172.163.27', port: 6543, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '104.222.161.211', port: 6343, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '64.137.96.74', port: 6641, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '216.10.27.159', port: 6837, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '136.0.207.84', port: 6661, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' },
-        { host: '142.147.128.93', port: 6593, user: 'fpkkmquz', pass: 'hh4q5mpyf5g5' }, 
-    ];
+    
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
@@ -58,25 +60,39 @@ export class ProxyService {
         private readonly jwtService: JwtService, // Inject JwtService
         private readonly redisService: RedisService,
     ) { }
-
+    async stop() {
+        this.isStopped = true;
+    }
     async play(req: any, body: any) {
-
+        this.isStopped = false;
+        const { urls, time, page } = body;
+        const proxies = await this.proxyRepository.find();
         
-        const batchSize = 1;
-        for (let i = 0; i < this.urls.length; i += batchSize) {
-            const batch = this.urls.slice(i, i + batchSize);
+        const batchSize = page; 
+        for (let i = 0; i < urls.length; i += batchSize) {
+            if (this.isStopped) {
+                console.log("⏹ Tiến trình bị dừng!");
+                break;
+            }
+
+            const batch = urls.slice(i, i + batchSize);
             console.log(`🚀 Chạy batch ${i / batchSize + 1}:`, batch.length, 'page');
 
-            await Promise.all(batch.map((url, idx) => {
-                const proxy = this.proxies[(i + idx) % this.proxies.length];
-                return this.runSinglePage(url, proxy);
+            await Promise.all(batch.map(async (url: any, idx: any) => {
+                if (this.isStopped) return; // bỏ qua nếu đã dừng
+                const proxy: any = proxies[(i + idx) % proxies.length];
+                return this.runSinglePage(url, proxy, time);
             }));
 
+
+            // thời gian chạy lại
             await new Promise((res) => setTimeout(res, 3000));
+
         }
     }
 
-    private async runSinglePage(url: string, proxy: { host: string, port: number, user?: string, pass?: string }) {
+    private async runSinglePage(url: string, proxy: { host: string, port: number, user_proxy?: string, pass_proxy?: string }, time: number) {
+         if (this.isStopped) return;
         const proxyArg = `--proxy-server=http://${proxy.host}:${proxy.port}`;
 
         const browser = await puppeteer.launch({
@@ -101,11 +117,12 @@ export class ProxyService {
             const page = await browser.newPage();
             const context = browser.defaultBrowserContext();
             await context.overridePermissions(url, []);
+
             // Auth proxy nếu cần
-            if (proxy.user && proxy.pass) {
+            if (proxy.user_proxy && proxy.pass_proxy) {
                 await page.authenticate({
-                    username: proxy.user,
-                    password: proxy.pass,
+                    username: proxy.user_proxy,
+                    password: proxy.pass_proxy,
                 });
             }
 
@@ -153,10 +170,6 @@ export class ProxyService {
                 await frame.waitForSelector('#texteditor');
                 await frame.waitForSelector('#sentButton');
 
-                // Ví dụ lấy html trong iframe
-                const htmlInFrame = await frame.content();
-                // console.log(htmlInFrame);
-
                 // Điền text vào textarea trong iframe
                 await frame.evaluate((text) => {
                     const textarea = document.querySelector('#texteditor') as HTMLTextAreaElement;
@@ -181,7 +194,7 @@ export class ProxyService {
 
             // Chờ tương tác
             console.log(`✅ Page loaded (Proxy ${proxy.host}): ${url}`);
-            await new Promise(res => setTimeout(res, 3 * 60 * 1000)); // chờ 2 phút
+            await new Promise(res => setTimeout(res, time)); // chờ 2 phút
 
         } catch (err) {
             console.error(`❌ Lỗi page với proxy ${proxy.host}:`, err.message);

@@ -12,6 +12,11 @@ export class ProxyController {
         return this.proxyService.play(req, body);
     }
 
+    @Post('stop')
+    async stop(@Req() req: any, @Body() body: any) {
+        return this.proxyService.stop();
+    }
+
     @Post('create')
     async create(@Req() req: any, @Body() body: any) {
         return this.proxyService.create(req, body);
