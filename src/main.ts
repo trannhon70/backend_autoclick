@@ -17,7 +17,7 @@ async function bootstrap() {
 
   // Gửi chat mỗi 10 giây
   // setInterval(() => {
-    proxyService.autoChat();
+    // proxyService.autoChat();
   // }, 60000);
 
   const configService = app.get(ConfigService);

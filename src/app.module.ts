@@ -7,10 +7,6 @@ import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
 import { RoleModule } from './role/role.module';
 import { Role } from './role/entities/role.entity';
-import { CityModule } from './city/city.module';
-import { City } from './city/entities/city.entity';
-import { DistrictModule } from './district/district.module';
-import { District } from './district/entities/district.entity';
 import { ProxyModule } from './proxy/proxy.module';
 import { ChatService } from './chat/chat.service';
 
@@ -26,7 +22,7 @@ import { ChatService } from './chat/chat.service';
         username: configService.get('DB_USERNAME'),
         database: configService.get('DB_DATABASE'),
         password: configService.get('DB_PASSWORD'),
-        entities: [User, Role, City, District],
+        entities: [User, Role],
         synchronize: configService.get('APP_ENV') === 'development',
         
       }),
@@ -34,8 +30,6 @@ import { ChatService } from './chat/chat.service';
     }),
     UserModule,
     RoleModule,
-    CityModule,
-    DistrictModule,
     ProxyModule
   ],
   controllers: [AppController],
