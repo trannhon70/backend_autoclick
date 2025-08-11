@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { ClientIp } from 'common/checkIp';
+import { ClientInfo } from 'src/common/checkIp';
 
 @Controller('user')
 export class UserController {
@@ -20,8 +20,8 @@ export class UserController {
   }
 
   @Post('login')
-  async login(@Body() body: LoginUserDto,@ClientIp() ip: string) {
-      const data = await this.userService.login(body,ip);
+  async login(@Body() body: LoginUserDto,@ClientInfo() option: any) {
+      const data = await this.userService.login(body,option);
       return {
           statusCode: 1,
           message: 'Đăng nhập thành công!',

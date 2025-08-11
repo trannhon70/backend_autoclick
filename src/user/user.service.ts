@@ -42,7 +42,7 @@ export class UserService {
     return await this.userRepository.save(todo)
   }
 
-  async login(body: LoginUserDto, ip: string) {
+  async login(body: LoginUserDto, option: any) {
     const user = await this.userRepository.findOne({
       where: {
         email: body.email

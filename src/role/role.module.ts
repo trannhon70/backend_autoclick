@@ -4,9 +4,9 @@ import { RoleController } from './role.controller';
 import { User } from 'src/user/entities/user.entity';
 import { Role } from './entities/role.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthMiddleware } from 'common/middleware/auth.middleware';
-import { LoggerMiddleware } from 'common/middleware/logger.middleware';
-import { CustomJwtModule } from 'common/auth/auth.module';
+import { AuthMiddleware } from 'src/common/middleware/auth.middleware';
+import { LoggerMiddleware } from 'src/common/middleware/logger.middleware';
+import { CustomJwtModule } from 'src/common/auth/auth.module';
 
 @Module({
   imports:[

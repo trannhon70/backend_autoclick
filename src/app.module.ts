@@ -9,13 +9,15 @@ import { RoleModule } from './role/role.module';
 import { Role } from './role/entities/role.entity';
 import { ProxyModule } from './proxy/proxy.module';
 import { ChatService } from './chat/chat.service';
+import { RedisModule } from './redis/redis.module';
+import { CustomJwtModule } from './common/auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) =>({
+      useFactory: (configService: ConfigService) => ({
         type: 'mysql',
         host: configService.get('DB_HOST'),
         port: +configService.get('DB_PORT'),
@@ -24,15 +26,18 @@ import { ChatService } from './chat/chat.service';
         password: configService.get('DB_PASSWORD'),
         entities: [User, Role],
         synchronize: configService.get('APP_ENV') === 'development',
-        
+
       }),
       inject: [ConfigService]
     }),
+    RedisModule,
+    // SocketModule,
+    CustomJwtModule,
     UserModule,
     RoleModule,
     ProxyModule
   ],
   controllers: [AppController],
-  providers: [AppService, ChatService],
+  providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

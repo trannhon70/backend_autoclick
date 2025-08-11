@@ -3,10 +3,11 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ChatService } from './chat/chat.service';
 import { ProxyService } from './proxy/proxy.service';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  app.useGlobalInterceptors(new ResponseInterceptor());
   app.enableCors({
     origin: [process.env.URL_DEV_PRODUCTION, process.env.URL_DEV_LOCALHOST],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
