@@ -13,7 +13,7 @@ import { User } from './entities/user.entity';
 let saltOrRounds = 10;
 @Injectable()
 export class UserService {
-   constructor(
+  constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(Role)
@@ -23,26 +23,26 @@ export class UserService {
     private readonly redisService: RedisService,
   ) { }
 
-  async create(req:any, body: CreateUserDto) {
+  async create(req: any, body: CreateUserDto) {
     try {
-       const check = await this.userRepository.findOne({ where: { email: body.email } });
-    if (check) {
-      throw new BadRequestException('Email đã được đăng ký, vui lòng đăng ký mail khác!');
-    }
+      const check = await this.userRepository.findOne({ where: { email: body.email } });
+      if (check) {
+        throw new BadRequestException('Email đã được đăng ký, vui lòng đăng ký mail khác!');
+      }
 
-    const hashPassword = await bcrypt.hash(body.password, saltOrRounds)
-    const data: any = {
-      roleId: body.roleId || '',
-      email: body.email || '',
-      password: hashPassword || '',
-      fullName: body.fullName || '',
-      ngaySinh: body.ngaySinh || '',
-      phone: body.phone || '',
-      created_at: currentTimestamp(),
-    }
+      const hashPassword = await bcrypt.hash(body.password, saltOrRounds)
+      const data: any = {
+        roleId: body.roleId || '',
+        email: body.email || '',
+        password: hashPassword || '',
+        fullName: body.fullName || '',
+        ngaySinh: body.ngaySinh || '',
+        phone: body.phone || '',
+        created_at: currentTimestamp(),
+      }
 
-    const todo = this.userRepository.create(data);
-    return await this.userRepository.save(todo)
+      const todo = this.userRepository.create(data);
+      return await this.userRepository.save(todo)
     } catch (error) {
       console.log(error);
       throw error
@@ -116,16 +116,20 @@ export class UserService {
     }
   }
 
-  async getById (req:any, ip:any){
+  async getById(req: any, ip: any) {
     try {
       const { userId } = await extractUserFromRequest(req, this.jwtService);
-      
-      return await this.userRepository.findOne({
-        where:{id: userId},
-        relations:['role']
-      })
+
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: ['role'],
+      });
+      if (user) {
+        delete user.password;  // loại bỏ trường password
+      }
+      return user;
     } catch (error) {
-      console.log(error);
+      console.log(error); 
       throw error
     }
   }
