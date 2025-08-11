@@ -1,17 +1,16 @@
-import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { UserService } from './user.service';
-import { UserController } from './user.controller';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Role } from 'src/role/entities/role.entity';
-import { User } from './entities/user.entity';
 import { CustomJwtModule } from 'src/common/auth/auth.module';
 import { AuthMiddleware } from 'src/common/middleware/auth.middleware';
 import { LoggerMiddleware } from 'src/common/middleware/logger.middleware';
+import { Role } from 'src/role/entities/role.entity';
+import { User } from './entities/user.entity';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 
 @Module({
    imports:[
       TypeOrmModule.forFeature([Role, User]),
-      CustomJwtModule,
   ],
   controllers: [UserController],
   providers: [UserService],

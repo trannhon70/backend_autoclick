@@ -1,57 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, Req } from '@nestjs/common';
-import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { ClientInfo } from 'src/common/checkIp';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('create')
-  async create(@Body() body: CreateUserDto) {
-    const data = await this.userService.create(body);
-    return {
-      statusCode: 1,
-      message: 'Tạo tài khoản thành công!',
-      data: data
-    };
+  async create(@Req() req:any, @Body() body: CreateUserDto) {
+    return this.userService.create(req, body);
   }
 
   @Post('login')
-  async login(@Body() body: LoginUserDto,@ClientInfo() option: any) {
-      const data = await this.userService.login(body,option);
-      return {
-          statusCode: 1,
-          message: 'Đăng nhập thành công!',
-          token: data.token,
-          user: data.user 
-      };
+  async login(@Body() body: any, @ClientInfo() ip: string) {
+    const data = await this.userService.login(body, ip);
+    
+    return data;
   }
 
-  @Get()
-  findAll() {
-    return this.userService.findAll();
-  }
-
-  @Get('get-by-id-user')
-  async findOne(@Req() req: any) {
-    const data = await this.userService.findOne(req);
-    return {
-      statusCode: 1,
-      message: 'get by id user success!',
-      data: data 
-  };
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  @Get('get-by-id')
+  async getById(@Req() req:any, @ClientInfo() ip: string) {
+    const data = await this.userService.getById(req, ip);
+   
+    return data;
   }
 }

@@ -11,7 +11,6 @@ import { CustomJwtModule } from 'src/common/auth/auth.module';
 @Module({
   imports:[
     TypeOrmModule.forFeature([Role, User]),
-    CustomJwtModule,
 ],
   controllers: [RoleController],
   providers: [RoleService],
