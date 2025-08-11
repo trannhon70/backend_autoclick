@@ -12,6 +12,4 @@ export class Role {
     @Column()
     created_at: number;
 
-    @OneToMany(() => User, (user) => user.role)  // Đảm bảo rằng bạn tham chiếu đến trường 'role'
-    users: User[];
 }

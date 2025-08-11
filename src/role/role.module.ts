@@ -22,7 +22,7 @@ export class RoleModule implements NestModule {
       consumer
         .apply(AuthMiddleware, LoggerMiddleware) 
         .forRoutes( 
-          { path: 'role/create', method: RequestMethod.POST },
+          // { path: 'role/create', method: RequestMethod.POST },
           
       ); 
   }
