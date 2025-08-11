@@ -11,6 +11,7 @@ import { ProxyModule } from './proxy/proxy.module';
 import { ChatService } from './chat/chat.service';
 import { RedisModule } from './redis/redis.module';
 import { CustomJwtModule } from './common/auth/auth.module';
+import { Proxy } from './proxy/entities/proxy.entity';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { CustomJwtModule } from './common/auth/auth.module';
         username: configService.get('DB_USERNAME'),
         database: configService.get('DB_DATABASE'),
         password: configService.get('DB_PASSWORD'),
-        entities: [User, Role],
+        entities: [User, Role, Proxy],
         synchronize: configService.get('APP_ENV') === 'development',
 
       }),
