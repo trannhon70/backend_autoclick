@@ -50,7 +50,7 @@ export class ProxyService {
     // ];
     private isStopped = false;
 
-    
+
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
@@ -65,10 +65,10 @@ export class ProxyService {
     }
     async play(req: any, body: any) {
         this.isStopped = false;
-        const { urls, time, page } = body;
+        const { urls, time, page, chats } = body;
         const proxies = await this.proxyRepository.find();
         
-        const batchSize = page; 
+        const batchSize = page;
         for (let i = 0; i < urls.length; i += batchSize) {
             if (this.isStopped) {
                 console.log("⏹ Tiến trình bị dừng!");
@@ -81,7 +81,7 @@ export class ProxyService {
             await Promise.all(batch.map(async (url: any, idx: any) => {
                 if (this.isStopped) return; // bỏ qua nếu đã dừng
                 const proxy: any = proxies[(i + idx) % proxies.length];
-                return this.runSinglePage(url, proxy, time);
+                return this.runSinglePage(url, proxy, time, chats);
             }));
 
 
@@ -91,8 +91,8 @@ export class ProxyService {
         }
     }
 
-    private async runSinglePage(url: string, proxy: { host: string, port: number, user_proxy?: string, pass_proxy?: string }, time: number) {
-         if (this.isStopped) return;
+    private async runSinglePage(url: string, proxy: { host: string, port: number, user_proxy?: string, pass_proxy?: string }, time: number, chats: any[]) {
+        if (this.isStopped) return;
         const proxyArg = `--proxy-server=http://${proxy.host}:${proxy.port}`;
 
         const browser = await puppeteer.launch({
@@ -171,16 +171,23 @@ export class ProxyService {
                 await frame.waitForSelector('#sentButton');
 
                 // Điền text vào textarea trong iframe
-                await frame.evaluate((text) => {
-                    const textarea = document.querySelector('#texteditor') as HTMLTextAreaElement;
-                    if (textarea) {
-                        textarea.value = text;
-                        textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                }, testInput);
+                for (const chat of chats) {
+                    await frame.evaluate((text) => {
+                        const textarea = document.querySelector('#texteditor') as HTMLTextAreaElement;
+                        if (textarea) {
+                            textarea.value = text;
+                            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }, chat);
 
-                // Click nút gửi trong iframe
-                await frame.click('#sentButton');
+                    // Click nút gửi
+                    await frame.click('#sentButton');
+
+                    console.log(`Đã gửi: ${chat}`);
+
+                    // Đợi 20 giây trước khi gửi tin tiếp theo
+                    await new Promise(resolve => setTimeout(resolve, 20000));
+                }
 
             } catch (err) {
                 console.error(`❌ Lỗi khi vào URL:`, err.message);
