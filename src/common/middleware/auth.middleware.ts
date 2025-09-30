@@ -1,7 +1,7 @@
 import {
-    Injectable,
-    NestMiddleware,
-    UnauthorizedException,
+  Injectable,
+  NestMiddleware,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { NextFunction, Response } from 'express';
