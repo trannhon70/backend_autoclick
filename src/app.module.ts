@@ -12,6 +12,7 @@ import { ChatService } from './chat/chat.service';
 import { RedisModule } from './redis/redis.module';
 import { CustomJwtModule } from './common/auth/auth.module';
 import { Proxy } from './proxy/entities/proxy.entity';
+import { CommandModule } from './command/command.module';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { Proxy } from './proxy/entities/proxy.entity';
     CustomJwtModule,
     UserModule,
     RoleModule,
-    ProxyModule
+    ProxyModule,
+    CommandModule
   ],
   controllers: [AppController],
   providers: [AppService],

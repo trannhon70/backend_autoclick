@@ -42,5 +42,10 @@ export class ProxyController {
         return this.proxyService.getPaging(req, query);
     }
 
+    @Post('create-click-ads')
+    async createClickAds(@Req() req: any, @Body() body: any) {
+        return this.proxyService.createClickAds(req, body);
+    }
+
 
 }

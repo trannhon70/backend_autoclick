@@ -67,7 +67,7 @@ export class ProxyService {
         this.isStopped = false;
         const { urls, time, page, chats } = body;
         const proxies = await this.proxyRepository.find();
-        
+
         const batchSize = page;
         for (let i = 0; i < urls.length; i += batchSize) {
             if (this.isStopped) {
@@ -295,6 +295,61 @@ export class ProxyService {
                 pageSize: pageSize,
                 totalPages: Math.ceil(total / pageSize),
             };
+        } catch (error) {
+            console.log(error);
+            throw error
+        }
+    }
+
+
+    async createClickAds(req: any, body: any) {
+        try {
+            console.log(body);
+            const { search, doamin } = body
+            const proxyArg = `--proxy-server=http://198.23.239.134:6540`;
+
+            const browser = await puppeteer.launch({
+                headless: false,
+                args: [
+                    proxyArg,
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    `--user-data-dir=D:\\puppeteer_profile_${Date.now()}`,
+                    '--use-fake-ui-for-media-stream',
+                    '--use-fake-device-for-media-stream',
+
+                    // Chặn WebRTC leak
+                    '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+                    '--webrtc-ip-handling-policy=default_public_interface_only',
+                    '--webrtc-multiple-routes-disabled=true',
+                    '--disable-webrtc',
+                ],
+            });
+            const page = await browser.newPage();
+            // Auth proxy nếu cần
+
+            await page.authenticate({
+                username: 'fpkkmquz',
+                password: 'hh4q5mpyf5g5',
+            });
+
+            // Vào Google
+            await page.goto('https://www.google.com', {
+                waitUntil: 'networkidle2',
+            });
+
+            // chờ element xuất hiện và click
+            await page.waitForSelector('a[aria-label="Sign in"]', { visible: true, timeout: 3000 });
+            await page.click('a[aria-label="Sign in"]');
+
+            // Chờ trang login load ra input email
+            await page.waitForSelector('input#identifierId', { visible: true, timeout: 5000 });
+
+            // Gõ email vào input
+            await page.type('input#identifierId', 'kevintran351996@gmail.com', { delay: 100 });
+
+            // Nếu muốn nhấn Enter để submit
+            await page.keyboard.press('Enter');
         } catch (error) {
             console.log(error);
             throw error
