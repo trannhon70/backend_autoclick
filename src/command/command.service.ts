@@ -75,7 +75,7 @@ export class CommandService {
     // 🧠 Khởi tạo worker 1 lần duy nhất (nhanh hơn nhiều)
     const worker = await createWorker('vie+eng');
     await worker.setParameters({
-      tessedit_pageseg_mode: "6",
+      tessedit_pageseg_mode: "3",
       preserve_interword_spaces: "1",
     } as any);
 
@@ -133,7 +133,45 @@ export class CommandService {
           if (line?.bbox) bbox = line.bbox;
         }
 
-        // 🎯 Nếu có tọa độ → click
+        // 🖼️ Luôn chụp lại ảnh toàn màn hình để debug
+        const screenshotBuffer = await sharp(image.data, {
+          raw: {
+            width: image.width,
+            height: image.height,
+            channels: image.channels,
+          },
+        })
+          .png()
+          .toBuffer();
+
+        let annotatedBuffer = screenshotBuffer;
+        let noteText = bbox ? `Found: ${target}` : `Found text but no bbox`;
+
+        // Nếu có bbox → vẽ khung đỏ, nếu không → vẽ khung vàng ở giữa màn hình
+        const svgOverlay = bbox
+          ? `
+      <svg width="${image.width}" height="${image.height}">
+        <rect x="${bbox.x0}" y="${bbox.y0}" width="${bbox.x1 - bbox.x0}" height="${bbox.y1 - bbox.y0}"
+          stroke="red" stroke-width="5" fill="none"/>
+        <text x="${bbox.x0}" y="${bbox.y0 - 10}" fill="red" font-size="32" font-weight="bold">${noteText}</text>
+      </svg>`
+          : `
+      <svg width="${image.width}" height="${image.height}">
+        <circle cx="${image.width / 2}" cy="${image.height / 2}" r="50"
+          stroke="yellow" stroke-width="5" fill="none"/>
+        <text x="${image.width / 2 - 100}" y="${image.height / 2 - 60}" fill="yellow"
+          font-size="32" font-weight="bold">${noteText}</text>
+      </svg>`;
+
+        annotatedBuffer = await sharp(screenshotBuffer)
+          .composite([{ input: Buffer.from(svgOverlay), top: 0, left: 0 }])
+          .toBuffer();
+
+        const filename = `found_${target.replace(/\s+/g, "_")}.png`;
+        await sharp(annotatedBuffer).toFile(filename);
+        console.log(`📸 Đã lưu ảnh (debug OCR): ${filename}`);
+
+        // 🎯 Nếu có bbox thì click, ngược lại fallback click giữa màn hình
         if (bbox) {
           const x = bbox.x0 + (bbox.x1 - bbox.x0) / 2;
           const y = bbox.y0 + (bbox.y1 - bbox.y0) / 2;
@@ -142,21 +180,18 @@ export class CommandService {
           await mouse.move(straightTo(new Point(x, y)));
           await mouse.click(Button.LEFT);
           console.log(`🖱️ Đã click vào "${target}" tại (${x}, ${y})`);
-          found = true;
-          break;
         } else {
-          console.log("⚠️ Có text nhưng không tìm thấy bounding box cụ thể.");
+          console.log("⚠️ Không có bbox, click fallback giữa màn hình.");
           const centerX = image.width / 2;
           const centerY = image.height / 2;
           await mouse.move(straightTo(new Point(centerX, centerY)));
           await mouse.click(Button.LEFT);
-          console.log("🖱️ Fallback click giữa màn hình.");
         }
-      } else {
-        console.log("⏬ Chưa thấy, scroll tiếp...");
-        await mouse.scrollDown(400);
-        await new Promise((r) => setTimeout(r, 1000));
+
+        found = true;
+        break;
       }
+
     }
 
     if (!found) {
