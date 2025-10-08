@@ -50,6 +50,7 @@ async function detectBoxFromImage(filePath: string) {
 @Injectable()
 export class CommandService {
   async run(body: any) {
+    const { keyword, domain, quantity } = body
     // Di chuyển chuột tới ô tìm kiếm và gõ "google"
     await mouse.move(straightTo(new Point(200, 1600)));
     await mouse.click(Button.LEFT);
@@ -71,9 +72,9 @@ export class CommandService {
 
     await mouse.move(straightTo(new Point(700, 400)));
     await mouse.click(Button.LEFT);
-    await keyboard.type("kham nam khoa o tphcm");
+    await keyboard.type(keyword);
     await keyboard.type(Key.Enter);
-    await new Promise(r => setTimeout(r, 5000)); // đợi load nội dung
+    await new Promise(r => setTimeout(r, 10000)); // đợi load nội dung
 
     // Scroll xuống chậm (20 lần, mỗi lần 100px)
     for (let i = 0; i < 40; i++) {
@@ -87,17 +88,43 @@ export class CommandService {
       await new Promise(r => setTimeout(r, 200));
     }
 
-    this.findAndScroll("nhathuoclongchau")
+    this.findAndScroll(domain)
 
 
   }
 
+  async scrollToCenter(centerY: number, imageHeight: number, mouse: any) {
+    const screenCenterY = imageHeight / 2; // tâm màn hình theo chiều dọc
+    const offsetY = centerY - screenCenterY; // khoảng lệch
+    const tolerance = 0; // px — cho phép lệch nhẹ để tránh cuộn quá mức
 
+    console.log(`🧮 screenCenterY=${screenCenterY}, centerY=${centerY}, offsetY=${offsetY}`);
+
+    // Nếu lệch nhỏ hơn tolerance thì không cuộn
+    if (Math.abs(offsetY) <= tolerance) {
+      console.log("✅ Target đã nằm chính giữa hoặc đủ gần — không cần cuộn.");
+      return;
+    }
+
+    // Cuộn theo đúng khoảng lệch
+    const scrollDistance = Math.min(Math.abs(offsetY), imageHeight); // giới hạn không cuộn quá 1 màn hình
+
+    if (offsetY < 0) {
+      console.log(`🖱 Cuộn xuống ${scrollDistance}px (target đang ở phía dưới giữa)`);
+      await mouse.scrollDown(scrollDistance);
+    } else {
+      console.log(`🖱 Cuộn lên ${scrollDistance}px (target đang ở phía trên giữa)`);
+      await mouse.scrollUp(scrollDistance);
+    }
+
+    // 💤 Chờ ổn định sau khi cuộn
+    await new Promise((r) => setTimeout(r, 800));
+  }
 
   async findAndScroll(target: string) {
     let found = false;
 
-    // Khởi tạo worker 1 lần
+    // 🧠 Khởi tạo worker 1 lần
     const worker = await createWorker('vie+eng');
     await worker.setParameters({
       tessedit_pageseg_mode: "3",
@@ -106,20 +133,20 @@ export class CommandService {
 
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    // optional: click vào giữa màn hình để đảm bảo cửa sổ được focus (nếu cần)
+    // đảm bảo cửa sổ được focus
     await mouse.move(straightTo(new Point(600, 400)));
 
-    const scrollStep = 600; // pixels mỗi lần cuộn (tùy chỉnh)
+    const scrollStep = 600; // pixels mỗi lần cuộn
     const postScrollWait = 1200; // ms đợi render sau mỗi lần cuộn
 
     for (let i = 0; i < 10 && !found; i++) {
       console.log(`🔍 Lần ${i + 1}: đang quét màn hình...`);
 
       try {
-        // Chụp ảnh màn hình
+        // 📸 Chụp ảnh màn hình
         const image: any = await screen.grab();
 
-        // Xử lý ảnh trước OCR
+        // 🧩 Xử lý ảnh trước OCR
         const pngBuffer = await sharp(image.data, {
           raw: { width: image.width, height: image.height, channels: image.channels },
         })
@@ -130,7 +157,7 @@ export class CommandService {
           .png()
           .toBuffer();
 
-        // OCR
+        // 🔠 OCR
         const result: any = await worker.recognize(
           pngBuffer,
           { left: 0, top: 0, width: image.width * 2, height: image.height * 2 } as any
@@ -147,7 +174,7 @@ export class CommandService {
         if (text.includes(target.toLowerCase())) {
           console.log("✅ Đã thấy chữ:", target);
 
-          // tìm bbox
+          // 🟩 Tìm bbox (tọa độ)
           let bbox: any = null;
           const word = words.find((w: any) => w.text.toLowerCase().includes(target.toLowerCase()));
           if (word?.bbox) bbox = word.bbox;
@@ -157,14 +184,12 @@ export class CommandService {
             if (line?.bbox) bbox = line.bbox;
           }
 
-          // chụp lại ảnh full để annotate
+          // 🖼 Annotate ảnh để debug (nếu cần)
           const screenshotBuffer = await sharp(image.data, {
             raw: { width: image.width, height: image.height, channels: image.channels },
           }).png().toBuffer();
 
-          let noteText = bbox ? `Found: ${target}` : `Found text but no bbox`;
-          console.log(bbox, 'bbox');
-
+          const noteText = bbox ? `Found: ${target}` : `Found text but no bbox`;
           const svgOverlay = bbox
             ? `<svg width="${image.width}" height="${image.height}">
                <rect x="${bbox.x0}" y="${bbox.y0}" width="${bbox.x1 - bbox.x0}" height="${bbox.y1 - bbox.y0}"
@@ -188,26 +213,35 @@ export class CommandService {
           try {
             await sharp(annotatedBuffer).toFile(filepath);
 
-            const bbox = await detectBoxFromImage(filepath);
+            // 🔍 Lấy lại bbox từ ảnh có resize (nếu bạn dùng detectBoxFromImage)
+            const box = await detectBoxFromImage(filepath);
 
-            // bbox từ ảnh đã resize OCR (ví dụ: resize 2x)
-            const scaleX = image.width / (image.width * 2); // = 0.5 nếu resize 2x
-            const scaleY = image.height / (image.height * 2); // = 0.5
+            const scaleX = image.width / (image.width * 2);
+            const scaleY = image.height / (image.height * 2);
 
-            const realX = bbox.x * scaleX;
-            const realY = bbox.y * scaleY;
-            const realWidth = bbox.width * scaleX;
-            const realHeight = bbox.height * scaleY;
+            const realX = box.x * scaleX;
+            const realY = box.y * scaleY;
+            const realWidth = box.width * scaleX;
+            const realHeight = box.height * scaleY;
 
             const centerX = realX + realWidth / 2;
             const centerY = realY + realHeight / 2;
 
-            console.log(`📍 Tọa độ trung tâm thật trên màn hình: (${centerX}, ${centerY})`);
+            console.log(`📍 Tọa độ trung tâm thật: (${centerX}, ${centerY})`);
+            // 🎯 Cuộn sao cho chữ nằm giữa màn hình (chỉ nếu lệch nhiều)
+            const screenCenterY = image.height / 2;
+            const offsetY = centerY - screenCenterY;
+            const tolerance = 200; // px - ngưỡng lệch cho phép
+            console.log(offsetY, 'offsetY');
 
-            await mouse.move(straightTo(new Point(centerX, centerY)));
+            await this.scrollToCenter(centerY, image.height, mouse);
+
+
+            // 🖱 Di chuột & click
+            // await mouse.move(straightTo(new Point(centerX, centerY)));
             await mouse.click(Button.LEFT);
 
-            // đợi 10s trước khi đóng tab
+            // 🕐 Đợi 10s rồi đóng tab
             await new Promise(r => setTimeout(r, 10000));
             await keyboard.pressKey(Key.LeftControl, Key.W);
             await keyboard.releaseKey(Key.LeftControl, Key.W);
@@ -219,34 +253,24 @@ export class CommandService {
 
           found = true;
           break;
-        }
-        else {
-          // Nếu chưa tìm thấy → cuộn xuống 1 bước và đợi render rồi lặp lại
-          console.log(`⤵️  Chưa thấy "${target}" — sẽ cuộn xuống ${scrollStep}px và quét lại.`);
+        } else {
+          console.log(`⤵️ Chưa thấy "${target}" — cuộn xuống ${scrollStep}px`);
           try {
             await mouse.scrollDown(scrollStep);
           } catch (e) {
-            console.warn("⚠️ mouse.scrollDown lỗi (thử phím PageDown):", e?.message || e);
-            try {
-              // fallback: dùng PageDown
-              await keyboard.pressKey(Key.PageDown);
-              await sleep(100);
-              await keyboard.releaseKey(Key.PageDown);
-            } catch (ee) {
-              console.warn("⚠️ fallback PageDown cũng thất bại:", ee?.message || ee);
-            }
+            console.warn("⚠️ mouse.scrollDown lỗi, thử dùng PageDown");
+            await keyboard.pressKey(Key.PageDown);
+            await sleep(100);
+            await keyboard.releaseKey(Key.PageDown);
           }
-          await sleep(postScrollWait); // đợi trang render
+          await sleep(postScrollWait);
         }
       } catch (err) {
         console.error("❌ Lỗi trong lần quét:", err?.message || err);
-        // dù lỗi vẫn cố gắng cuộn để thử vùng khác
-        try {
-          await mouse.scrollDown(scrollStep);
-        } catch (e) { /* ignore */ }
+        await mouse.scrollDown(scrollStep).catch(() => { });
         await sleep(postScrollWait);
       }
-    } // end for
+    }
 
     if (!found) {
       console.log("❌ Không tìm thấy:", target);
@@ -257,6 +281,7 @@ export class CommandService {
 
     await worker.terminate();
   }
+
 
 
 }
