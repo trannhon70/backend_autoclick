@@ -25,58 +25,54 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 
-async function detectBoxFromImage(filePath: string) {
-  const image = sharp(filePath);
-  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
 
-  let minX = info.width, minY = info.height, maxX = 0, maxY = 0;
-
-  for (let y = 0; y < info.height; y++) {
-    for (let x = 0; x < info.width; x++) {
-      const idx = (y * info.width + x) * info.channels;
-      const [r, g, b] = [data[idx], data[idx + 1], data[idx + 2]];
-      // nếu pixel màu đỏ mạnh (đường viền)
-      if (r > 200 && g < 100 && b < 100) {
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-      }
-    }
-  }
-
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-}
 @Injectable()
 export class CommandService {
   async run(body: any) {
-    const { keyword, domain, quantity } = body
-    // Di chuyển chuột tới ô tìm kiếm và gõ "google"
+    const { keyword, domain, quantity } = body;
+
+    for (let i = 0; i < quantity; i++) {
+      console.log(`🚀 Bắt đầu vòng lặp ${i + 1}/${quantity}`);
+      await this.executeOneRound(keyword, domain);
+    }
+
+    console.log("🎯 Hoàn tất tất cả các vòng lặp!");
+    return
+  }
+  async executeOneRound(keyword: string, domain: string) {
+    // 👉 1. Mở trình duyệt (ví dụ click vào ô tìm kiếm & gõ google)
     await mouse.move(straightTo(new Point(200, 1600)));
     await mouse.click(Button.LEFT);
     await keyboard.type("google");
     await keyboard.type(Key.Enter);
 
-    // Click vào tài khoản google
+    // 👉 2. Click tài khoản Google
     await mouse.move(straightTo(new Point(1000, 500)));
     await mouse.click(Button.LEFT);
 
-    // === MỞ F12 (DevTools) ===
+    // 👉 3. Mở DevTools
     await keyboard.pressKey(Key.F12);
     await keyboard.releaseKey(Key.F12);
 
+    // 👉 4. Gõ google.com
     await mouse.move(straightTo(new Point(200, 70)));
     await mouse.click(Button.LEFT);
     await keyboard.type("google.com");
     await keyboard.type(Key.Enter);
-    await new Promise(r => setTimeout(r, 3000)); // đợi load nội dung
+    await new Promise(r => setTimeout(r, 3000));
 
+    // 👉 5. Gõ từ khóa
     await mouse.move(straightTo(new Point(700, 400)));
     await mouse.click(Button.LEFT);
     await keyboard.type(keyword);
     await keyboard.type(Key.Enter);
-    await new Promise(r => setTimeout(r, 10000)); // đợi load nội dung
-    await this.findAndScroll(domain)
+    await new Promise(r => setTimeout(r, 10000));
+
+    // 👉 6. Scroll tìm domain
+    await this.findAndScroll(domain);
+
+    // 👉 8. Chờ một chút để chuẩn bị vòng sau
+    await new Promise(r => setTimeout(r, 2000));
   }
 
 
@@ -144,11 +140,12 @@ export class CommandService {
 
                 await mouse.move(straightTo(new Point(clickX, clickY)));
                 await mouse.click(Button.LEFT);
+                await new Promise(r => setTimeout(r, 1000)); // đợi load nội dung
                 for (let i = 0; i < 10; i++) {
-                  await mouse.scrollDown(100);
+                  await mouse.scrollDown(400);
                   await new Promise(r => setTimeout(r, 400));
                 }
-
+                await new Promise(r => setTimeout(r, 1000)); // đợi load nội dung
                 // ✅ Gán cờ để dừng vòng lặp
                 found = true;
                 await keyboard.pressKey(Key.LeftControl, Key.W);
