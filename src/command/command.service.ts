@@ -69,67 +69,27 @@ export class CommandService {
     await mouse.click(Button.LEFT);
     await keyboard.type("google.com");
     await keyboard.type(Key.Enter);
+    await new Promise(r => setTimeout(r, 3000)); // đợi load nội dung
 
     await mouse.move(straightTo(new Point(700, 400)));
     await mouse.click(Button.LEFT);
     await keyboard.type(keyword);
     await keyboard.type(Key.Enter);
     await new Promise(r => setTimeout(r, 10000)); // đợi load nội dung
-
-    // Scroll xuống chậm (20 lần, mỗi lần 100px)
-    for (let i = 0; i < 40; i++) {
-      await mouse.scrollDown(100);
-      await new Promise(r => setTimeout(r, 200));
-    }
-
-    // Scroll lên chậm (20 lần, mỗi lần 100px)
-    for (let i = 0; i < 40; i++) {
-      await mouse.scrollUp(100);
-      await new Promise(r => setTimeout(r, 200));
-    }
-
-    this.findAndScroll(domain)
-
-
+    await this.findAndScroll(domain)
   }
 
-  async scrollToCenter(centerY: number, imageHeight: number, mouse: any) {
-    const screenCenterY = imageHeight / 2; // tâm màn hình theo chiều dọc
-    const offsetY = centerY - screenCenterY; // khoảng lệch
-    const tolerance = 0; // px — cho phép lệch nhẹ để tránh cuộn quá mức
-
-    console.log(`🧮 screenCenterY=${screenCenterY}, centerY=${centerY}, offsetY=${offsetY}`);
-
-    // Nếu lệch nhỏ hơn tolerance thì không cuộn
-    if (Math.abs(offsetY) <= tolerance) {
-      console.log("✅ Target đã nằm chính giữa hoặc đủ gần — không cần cuộn.");
-      return;
-    }
-
-    // Cuộn theo đúng khoảng lệch
-    const scrollDistance = Math.min(Math.abs(offsetY), imageHeight); // giới hạn không cuộn quá 1 màn hình
-
-    if (offsetY < 0) {
-      console.log(`🖱 Cuộn xuống ${scrollDistance}px (target đang ở phía dưới giữa)`);
-      await mouse.scrollDown(scrollDistance);
-    } else {
-      console.log(`🖱 Cuộn lên ${scrollDistance}px (target đang ở phía trên giữa)`);
-      await mouse.scrollUp(scrollDistance);
-    }
-
-    // 💤 Chờ ổn định sau khi cuộn
-    await new Promise((r) => setTimeout(r, 800));
-  }
 
   async findAndScroll(target: string) {
     let found = false;
-
     // 🧠 Khởi tạo worker 1 lần
-    const worker = await createWorker('vie+eng');
-    await worker.setParameters({
-      tessedit_pageseg_mode: "3",
-      preserve_interword_spaces: "1",
-    } as any);
+    const worker = await createWorker({
+      // logger: m => console.log(m), // 👈 optional: để debug tiến trình
+    });
+
+    await worker.load();                        // 1. Load engine
+    await worker.loadLanguage('vie+eng');       // 2. Load ngôn ngữ
+    await worker.initialize('vie+eng');         // 3. Khởi tạo OCR
 
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -158,101 +118,47 @@ export class CommandService {
           .toBuffer();
 
         // 🔠 OCR
-        const result: any = await worker.recognize(
+        const { data } = await worker.recognize(
           pngBuffer,
           { left: 0, top: 0, width: image.width * 2, height: image.height * 2 } as any
         );
-
-        const data = result.data;
         const text = data?.text?.toLowerCase() || "";
-        const words = data?.words || [];
-        const lines = data?.lines || [];
-
-        console.log("📖 OCR text:", text.slice(0, 100).replace(/\n/g, " "));
-        console.log("📦 words:", words.length, "| lines:", lines.length);
 
         if (text.includes(target.toLowerCase())) {
           console.log("✅ Đã thấy chữ:", target);
 
-          // 🟩 Tìm bbox (tọa độ)
-          let bbox: any = null;
-          const word = words.find((w: any) => w.text.toLowerCase().includes(target.toLowerCase()));
-          if (word?.bbox) bbox = word.bbox;
+          if (data.words && data.words.length) {
+            for (const word of data.words) {
+              if (word.text.toLowerCase().includes(target)) {
+                // console.log('📍 Tìm thấy từ:', word.text, word.bbox);
+                const { x0, y0, x1, y1 } = word.bbox;
+                const scaleX = image.width / (image.width * 2);  // = 0.5
+                const scaleY = image.height / (image.height * 2); // = 0.5
 
-          if (!bbox && lines.length > 0) {
-            const line = lines.find((l: any) => l.text.toLowerCase().includes(target.toLowerCase()));
-            if (line?.bbox) bbox = line.bbox;
+                const realX0 = x0 * scaleX;
+                const realY0 = y0 * scaleY;
+                const realX1 = x1 * scaleX;
+                const realY1 = y1 * scaleY;
+                const clickX = realX0 + (realX1 - realX0) / 2;
+                const clickY = realY0 + (realY1 - realY0) / 2;
+
+                await mouse.move(straightTo(new Point(clickX, clickY)));
+                await mouse.click(Button.LEFT);
+                for (let i = 0; i < 10; i++) {
+                  await mouse.scrollDown(100);
+                  await new Promise(r => setTimeout(r, 400));
+                }
+
+                // ✅ Gán cờ để dừng vòng lặp
+                found = true;
+                await keyboard.pressKey(Key.LeftControl, Key.W);
+                await keyboard.releaseKey(Key.LeftControl, Key.W);
+                break;
+              }
+            }
+          } else {
+            console.log('⚠️ Không có words, kiểm tra lại ảnh hoặc tesseract version');
           }
-
-          // 🖼 Annotate ảnh để debug (nếu cần)
-          const screenshotBuffer = await sharp(image.data, {
-            raw: { width: image.width, height: image.height, channels: image.channels },
-          }).png().toBuffer();
-
-          const noteText = bbox ? `Found: ${target}` : `Found text but no bbox`;
-          const svgOverlay = bbox
-            ? `<svg width="${image.width}" height="${image.height}">
-               <rect x="${bbox.x0}" y="${bbox.y0}" width="${bbox.x1 - bbox.x0}" height="${bbox.y1 - bbox.y0}"
-                 stroke="red" stroke-width="5" fill="none"/>
-               <text x="${bbox.x0}" y="${bbox.y0 - 10}" fill="red" font-size="32" font-weight="bold">${noteText}</text>
-             </svg>`
-            : `<svg width="${image.width}" height="${image.height}">
-               <circle cx="${image.width / 2}" cy="${image.height / 2}" r="50"
-                 stroke="yellow" stroke-width="5" fill="none"/>
-               <text x="${image.width / 2 - 100}" y="${image.height / 2 - 60}" fill="yellow"
-                 font-size="32" font-weight="bold">${noteText}</text>
-             </svg>`;
-
-          const annotatedBuffer = await sharp(screenshotBuffer)
-            .composite([{ input: Buffer.from(svgOverlay), top: 0, left: 0 }])
-            .toBuffer();
-
-          const filename = `found_${target.replace(/\s+/g, "_")}_${Date.now()}.png`;
-          const filepath = path.resolve(uploadDir, filename);
-
-          try {
-            await sharp(annotatedBuffer).toFile(filepath);
-
-            // 🔍 Lấy lại bbox từ ảnh có resize (nếu bạn dùng detectBoxFromImage)
-            const box = await detectBoxFromImage(filepath);
-
-            const scaleX = image.width / (image.width * 2);
-            const scaleY = image.height / (image.height * 2);
-
-            const realX = box.x * scaleX;
-            const realY = box.y * scaleY;
-            const realWidth = box.width * scaleX;
-            const realHeight = box.height * scaleY;
-
-            const centerX = realX + realWidth / 2;
-            const centerY = realY + realHeight / 2;
-
-            console.log(`📍 Tọa độ trung tâm thật: (${centerX}, ${centerY})`);
-            // 🎯 Cuộn sao cho chữ nằm giữa màn hình (chỉ nếu lệch nhiều)
-            const screenCenterY = image.height / 2;
-            const offsetY = centerY - screenCenterY;
-            const tolerance = 200; // px - ngưỡng lệch cho phép
-            console.log(offsetY, 'offsetY');
-
-            await this.scrollToCenter(centerY, image.height, mouse);
-
-
-            // 🖱 Di chuột & click
-            // await mouse.move(straightTo(new Point(centerX, centerY)));
-            await mouse.click(Button.LEFT);
-
-            // 🕐 Đợi 10s rồi đóng tab
-            await new Promise(r => setTimeout(r, 10000));
-            await keyboard.pressKey(Key.LeftControl, Key.W);
-            await keyboard.releaseKey(Key.LeftControl, Key.W);
-
-            console.log("✅ Hoàn tất click và đóng tab");
-          } catch (err: any) {
-            console.error("❌ Lỗi:", err?.message || err);
-          }
-
-          found = true;
-          break;
         } else {
           console.log(`⤵️ Chưa thấy "${target}" — cuộn xuống ${scrollStep}px`);
           try {
