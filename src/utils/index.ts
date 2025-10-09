@@ -1,6 +1,7 @@
 //thời gian hết hạn redis
-export const expirationTime = 8 * 60 * 60 * 1000; // 8 giờ (milliseconds)
-export const expiresIn = '8h'
+// 365 ngày (milliseconds)
+export const expirationTime = 365 * 24 * 60 * 60 * 1000; // 365 ngày
+export const expiresIn = '365d';
 
 // export const expirationTime = 30 * 1000; // 30 giây (milliseconds)
 // export const expiresIn = '30s'; // 30 giây
