@@ -39,6 +39,7 @@ export class CommandService {
     console.log("🎯 Hoàn tất tất cả các vòng lặp!");
     return
   }
+
   async executeOneRound(keyword: string, domain: string) {
     // 👉 1. Mở trình duyệt (ví dụ click vào ô tìm kiếm & gõ google)
     await mouse.move(straightTo(new Point(200, 1600)));
@@ -47,7 +48,7 @@ export class CommandService {
     await keyboard.type(Key.Enter);
 
     // 👉 2. Click tài khoản Google
-    await mouse.move(straightTo(new Point(1000, 500)));
+    await mouse.move(straightTo(new Point(650, 750)));
     await mouse.click(Button.LEFT);
 
     // 👉 3. Mở DevTools
