@@ -12,10 +12,11 @@ import * as fs from "fs";
 import * as path from "path"; // ✅ import đúng
 import * as sharp from "sharp";
 import { createWorker } from 'tesseract.js';
-
+import axios from 'axios';
 // Lấy root dự án (2 cấp trên dist)
 const rootDir = path.resolve(process.cwd());
 const uploadDir = path.join(rootDir, "uploads");
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -28,16 +29,61 @@ if (!fs.existsSync(uploadDir)) {
 
 @Injectable()
 export class CommandService {
+
+  private parseProxyString(proxyStr: string) {
+    // proxyStr dạng: host:port:username:password
+    const [host, port, username, password] = proxyStr.split(':');
+    return { host, port, username, password };
+  }
+
+  private buildProxyUrl(proxyStr: string): string {
+    const { host, port, username, password } = this.parseProxyString(proxyStr);
+    // Trả về dạng chuẩn:
+    return `http://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}`;
+  }
+
+  private async getPublicIp(proxyUrl: string) {
+    try {
+      const agent = new HttpsProxyAgent(proxyUrl);
+      const res = await axios.get('https://api.ipify.org?format=json', {
+        httpsAgent: agent,
+        httpAgent: agent,
+        proxy: false, // bắt buộc khi dùng agent
+        timeout: 10000,
+      });
+      return res.data?.ip || null;
+    } catch (err: any) {
+      console.error('❌ Không thể kiểm tra IP qua proxy:', err.message);
+      return null;
+    }
+  }
+
   async run(body: any) {
     const { keyword, domain, quantity } = body;
 
+    const proxyStr = '103.171.1.4:8031:1LGyUkFikevin:xkmq3RyG';
+    const proxyUrl = this.buildProxyUrl(proxyStr);
+
+    console.log('🌐 Đang sử dụng proxy:', proxyUrl.replace(/:(.*?)@/, ':***@'));
+
+    // Gán môi trường
+    process.env.HTTP_PROXY = proxyUrl;
+    process.env.HTTPS_PROXY = proxyUrl;
+
     for (let i = 0; i < quantity; i++) {
       console.log(`🚀 Bắt đầu vòng lặp ${i + 1}/${quantity}`);
+
+      const currentIp = await this.getPublicIp(proxyUrl);
+      if (currentIp) {
+        console.log('✅ IP công khai hiện tại (qua proxy):', currentIp);
+      } else {
+        console.log('⚠️ Proxy có thể lỗi hoặc bị chặn.');
+      }
+
       await this.executeOneRound(keyword, domain);
     }
 
-    console.log("🎯 Hoàn tất tất cả các vòng lặp!");
-    return
+    console.log('🎯 Hoàn tất tất cả các vòng lặp!');
   }
 
   async executeOneRound(keyword: string, domain: string) {
@@ -48,9 +94,8 @@ export class CommandService {
     await keyboard.type(Key.Enter);
 
     // 👉 2. Click tài khoản Google
-    await mouse.move(straightTo(new Point(650, 750)));
+    await mouse.move(straightTo(new Point(1000, 750)));
     await mouse.click(Button.LEFT);
-
     // 👉 3. Mở DevTools
     await keyboard.pressKey(Key.F12);
     await keyboard.releaseKey(Key.F12);
@@ -63,7 +108,8 @@ export class CommandService {
     await new Promise(r => setTimeout(r, 3000));
 
     // 👉 5. Gõ từ khóa
-    await mouse.move(straightTo(new Point(700, 400)));
+    await mouse.move(straightTo(new Point(700, 350)));
+
     await mouse.click(Button.LEFT);
     await keyboard.type(keyword);
     await keyboard.type(Key.Enter);
@@ -120,7 +166,12 @@ export class CommandService {
           { left: 0, top: 0, width: image.width * 2, height: image.height * 2 } as any
         );
         const text = data?.text?.toLowerCase() || "";
-
+        if (text.includes("I'm not a robot")) {
+          // ✅ Gán cờ để dừng vòng lặp
+          found = true;
+          await keyboard.pressKey(Key.LeftControl, Key.W);
+          await keyboard.releaseKey(Key.LeftControl, Key.W);
+        }
         if (text.includes(target.toLowerCase())) {
           console.log("✅ Đã thấy chữ:", target);
 
