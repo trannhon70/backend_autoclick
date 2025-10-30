@@ -166,7 +166,7 @@ export class CommandService {
           { left: 0, top: 0, width: image.width * 2, height: image.height * 2 } as any
         );
         const text = data?.text?.toLowerCase() || "";
-        if (text.includes("I'm not a robot")) {
+        if (text.includes("not a robot")) {
           // ✅ Gán cờ để dừng vòng lặp
           found = true;
           await keyboard.pressKey(Key.LeftControl, Key.W);
