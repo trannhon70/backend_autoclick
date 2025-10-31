@@ -17,6 +17,8 @@ import axios from 'axios';
 const rootDir = path.resolve(process.cwd());
 const uploadDir = path.join(rootDir, "uploads");
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent'
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -31,24 +33,39 @@ if (!fs.existsSync(uploadDir)) {
 export class CommandService {
 
   private parseProxyString(proxyStr: string) {
-    // proxyStr dạng: host:port:username:password
-    const [host, port, username, password] = proxyStr.split(':');
+    // Hỗ trợ password có dấu ':' bằng cách tách giới hạn
+    // proxyStr dạng: host:port:username:password (password có thể chứa :)
+    const parts = proxyStr.split(':');
+    if (parts.length < 4) throw new Error('Proxy string phải có dạng host:port:username:password');
+    const host = parts[0];
+    const port = parts[1];
+    const username = parts[2];
+    const password = parts.slice(3).join(':'); // gộp lại phần còn lại cho password
     return { host, port, username, password };
   }
 
-  private buildProxyUrl(proxyStr: string): string {
+  private buildProxyUrl(proxyStr: string, protocol: 'http' | 'socks' = 'http'): string {
     const { host, port, username, password } = this.parseProxyString(proxyStr);
-    // Trả về dạng chuẩn:
+    if (protocol === 'socks') {
+      // socks5://username:password@host:port
+      return `socks5://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}`;
+    }
     return `http://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}`;
   }
 
-  private async getPublicIp(proxyUrl: string) {
+  private createAgents(proxyUrl: string) {
+    // Tạo agent cho HTTP và HTTPS
+    const httpsAgent = new HttpsProxyAgent(proxyUrl);
+    const httpAgent = new HttpProxyAgent(proxyUrl);
+    return { httpAgent, httpsAgent };
+  }
+
+  private async getPublicIpUsingAgent(httpAgent: any, httpsAgent: any) {
     try {
-      const agent = new HttpsProxyAgent(proxyUrl);
       const res = await axios.get('https://api.ipify.org?format=json', {
-        httpsAgent: agent,
-        httpAgent: agent,
-        proxy: false, // bắt buộc khi dùng agent
+        httpsAgent,
+        httpAgent,
+        proxy: false, // BẮT BUỘC khi dùng agent với axios
         timeout: 10000,
       });
       return res.data?.ip || null;
@@ -62,24 +79,32 @@ export class CommandService {
     const { keyword, domain, quantity } = body;
 
     const proxyStr = '103.171.1.4:8031:1LGyUkFikevin:xkmq3RyG';
-    const proxyUrl = this.buildProxyUrl(proxyStr);
+    const proxyUrl = this.buildProxyUrl(proxyStr, 'http'); // hoặc 'socks' nếu là socks5
 
     console.log('🌐 Đang sử dụng proxy:', proxyUrl.replace(/:(.*?)@/, ':***@'));
 
-    // Gán môi trường
+    // Gán env (một số lib và child-process sẽ đọc biến này)
     process.env.HTTP_PROXY = proxyUrl;
     process.env.HTTPS_PROXY = proxyUrl;
+    // Nếu dùng socks: process.env.SOCKS_PROXY = proxyUrl;
+
+    // Tạo agent và set làm mặc định cho axios (tốt khi bạn muốn tất cả request dùng agent này)
+    const { httpAgent, httpsAgent } = this.createAgents(proxyUrl);
+    axios.defaults.httpAgent = httpAgent;
+    axios.defaults.httpsAgent = httpsAgent;
+    axios.defaults.proxy = false; // luôn false khi dùng agent
 
     for (let i = 0; i < quantity; i++) {
       console.log(`🚀 Bắt đầu vòng lặp ${i + 1}/${quantity}`);
 
-      const currentIp = await this.getPublicIp(proxyUrl);
+      const currentIp = await this.getPublicIpUsingAgent(httpAgent, httpsAgent);
       if (currentIp) {
         console.log('✅ IP công khai hiện tại (qua proxy):', currentIp);
       } else {
         console.log('⚠️ Proxy có thể lỗi hoặc bị chặn.');
       }
 
+      // Gọi thực thi công việc của bạn (mỗi request trong executeOneRound nên dùng axios mặc định)
       await this.executeOneRound(keyword, domain);
     }
 
@@ -105,8 +130,12 @@ export class CommandService {
     await mouse.click(Button.LEFT);
     await keyboard.type("google.com");
     await keyboard.type(Key.Enter);
-    await new Promise(r => setTimeout(r, 3000));
 
+
+    //click sign in 
+    await mouse.move(straightTo(new Point(1060, 350)));
+    await mouse.click(Button.LEFT);
+    await new Promise(r => setTimeout(r, 3000));
     // 👉 5. Gõ từ khóa
     await mouse.move(straightTo(new Point(700, 350)));
 
