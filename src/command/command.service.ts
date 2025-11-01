@@ -76,39 +76,22 @@ export class CommandService {
   }
 
   async run(body: any) {
-    const { keyword, domain, quantity } = body;
+    const { keywords, domain, quantity } = body;
 
-    const proxyStr = '103.171.1.4:8031:1LGyUkFikevin:xkmq3RyG';
-    const proxyUrl = this.buildProxyUrl(proxyStr, 'http'); // hoặc 'socks' nếu là socks5
+    // Lặp qua từng keyword
+    for (const keyword of keywords) {
+      console.log(`🔥 Bắt đầu chạy keyword: "${keyword}"`);
 
-    console.log('🌐 Đang sử dụng proxy:', proxyUrl.replace(/:(.*?)@/, ':***@'));
-
-    // Gán env (một số lib và child-process sẽ đọc biến này)
-    process.env.HTTP_PROXY = proxyUrl;
-    process.env.HTTPS_PROXY = proxyUrl;
-    // Nếu dùng socks: process.env.SOCKS_PROXY = proxyUrl;
-
-    // Tạo agent và set làm mặc định cho axios (tốt khi bạn muốn tất cả request dùng agent này)
-    const { httpAgent, httpsAgent } = this.createAgents(proxyUrl);
-    axios.defaults.httpAgent = httpAgent;
-    axios.defaults.httpsAgent = httpsAgent;
-    axios.defaults.proxy = false; // luôn false khi dùng agent
-
-    for (let i = 0; i < quantity; i++) {
-      console.log(`🚀 Bắt đầu vòng lặp ${i + 1}/${quantity}`);
-
-      const currentIp = await this.getPublicIpUsingAgent(httpAgent, httpsAgent);
-      if (currentIp) {
-        console.log('✅ IP công khai hiện tại (qua proxy):', currentIp);
-      } else {
-        console.log('⚠️ Proxy có thể lỗi hoặc bị chặn.');
+      // Chạy tuần tự quantity lần cho mỗi keyword
+      for (let i = 0; i < quantity; i++) {
+        console.log(`🚀 [${keyword}] Vòng lặp ${i + 1}/${quantity}`);
+        await this.executeOneRound(keyword, domain);
       }
 
-      // Gọi thực thi công việc của bạn (mỗi request trong executeOneRound nên dùng axios mặc định)
-      await this.executeOneRound(keyword, domain);
+      console.log(`✅ Hoàn tất keyword: "${keyword}"`);
     }
 
-    console.log('🎯 Hoàn tất tất cả các vòng lặp!');
+    console.log('🎯 Hoàn tất tất cả keyword!');
   }
 
   async executeOneRound(keyword: string, domain: string) {
@@ -119,7 +102,7 @@ export class CommandService {
     await keyboard.type(Key.Enter);
 
     // 👉 2. Click tài khoản Google
-    await mouse.move(straightTo(new Point(1000, 750)));
+    await mouse.move(straightTo(new Point(700, 500)));
     await mouse.click(Button.LEFT);
     // 👉 3. Mở DevTools
     await keyboard.pressKey(Key.F12);
