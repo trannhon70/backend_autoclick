@@ -116,8 +116,8 @@ export class CommandService {
 
 
     //click sign in 
-    await mouse.move(straightTo(new Point(1060, 350)));
-    await mouse.click(Button.LEFT);
+    // await mouse.move(straightTo(new Point(1060, 350)));
+    // await mouse.click(Button.LEFT);
     await new Promise(r => setTimeout(r, 3000));
     // 👉 5. Gõ từ khóa
     await mouse.move(straightTo(new Point(700, 350)));
