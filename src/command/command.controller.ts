@@ -9,4 +9,9 @@ export class CommandController {
   async run(@Body() body: any) {
     return this.commandService.run(body);
   }
+
+  @Post('stop')
+  async stop() {
+    return this.commandService.stop();
+  }
 }

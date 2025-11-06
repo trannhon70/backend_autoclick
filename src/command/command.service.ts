@@ -31,7 +31,7 @@ if (!fs.existsSync(uploadDir)) {
 
 @Injectable()
 export class CommandService {
-
+  private isRunning = false;
   private parseProxyString(proxyStr: string) {
     // Hỗ trợ password có dấu ':' bằng cách tách giới hạn
     // proxyStr dạng: host:port:username:password (password có thể chứa :)
@@ -77,21 +77,32 @@ export class CommandService {
 
   async run(body: any) {
     const { keywords, domain, quantity } = body;
-
+    this.isRunning = true;
     // Lặp qua từng keyword
     for (const keyword of keywords) {
+      if (!this.isRunning) break;
       console.log(`🔥 Bắt đầu chạy keyword: "${keyword}"`);
 
       // Chạy tuần tự quantity lần cho mỗi keyword
       for (let i = 0; i < quantity; i++) {
+
+        if (!this.isRunning) {
+          console.log('🛑 Dừng giữa vòng lặp nhỏ!');
+          break;
+        }
         console.log(`🚀 [${keyword}] Vòng lặp ${i + 1}/${quantity}`);
         await this.executeOneRound(keyword, domain);
       }
 
       console.log(`✅ Hoàn tất keyword: "${keyword}"`);
     }
-
+    this.isRunning = false;
     console.log('🎯 Hoàn tất tất cả keyword!');
+  }
+
+  stop() {
+    this.isRunning = false;
+    console.log('🛑 Đã yêu cầu dừng tiến trình!');
   }
 
   async executeOneRound(keyword: string, domain: string) {
