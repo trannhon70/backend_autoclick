@@ -131,3 +131,9 @@ private proxies = [
     'http://fpkkmquz:hh4q5mpyf5g5@142.147.128.93:6593',
     // Thêm proxy khác nếu muốn
   ];
+
+% download node 
+% https://nodejs.org/en/download
+
+% download redis
+% https://github.com/microsoftarchive/redis/releases
