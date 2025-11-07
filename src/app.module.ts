@@ -13,6 +13,7 @@ import { RedisModule } from './redis/redis.module';
 import { CustomJwtModule } from './common/auth/auth.module';
 import { Proxy } from './proxy/entities/proxy.entity';
 import { CommandModule } from './command/command.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
@@ -33,12 +34,13 @@ import { CommandModule } from './command/command.module';
       inject: [ConfigService]
     }),
     RedisModule,
-    // SocketModule,
+    SocketModule,
     CustomJwtModule,
     UserModule,
     RoleModule,
     ProxyModule,
-    CommandModule
+    CommandModule,
+    SocketModule
   ],
   controllers: [AppController],
   providers: [AppService],
