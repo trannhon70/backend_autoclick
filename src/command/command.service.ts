@@ -19,6 +19,7 @@ const uploadDir = path.join(rootDir, "uploads");
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent'
+import { SocketGateway } from 'src/socket/socket.gateway';
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -31,6 +32,9 @@ if (!fs.existsSync(uploadDir)) {
 
 @Injectable()
 export class CommandService {
+  constructor(
+    private readonly socketGateway: SocketGateway
+  ) { }
   private isRunning = false;
   private parseProxyString(proxyStr: string) {
     // Hỗ trợ password có dấu ':' bằng cách tách giới hạn
@@ -82,34 +86,39 @@ export class CommandService {
     for (const keyword of keywords) {
       if (!this.isRunning) break;
       console.log(`🔥 Bắt đầu chạy keyword: "${keyword}"`);
-
+      await this.socketGateway.sendToAll("start", keyword)
       // Chạy tuần tự quantity lần cho mỗi keyword
       for (let i = 0; i < quantity; i++) {
 
         if (!this.isRunning) {
           console.log('🛑 Dừng giữa vòng lặp nhỏ!');
+          await this.socketGateway.sendToAll("stop", '🛑 Dừng giữa vòng lặp nhỏ!')
           break;
         }
         console.log(`🚀 [${keyword}] Vòng lặp ${i + 1}/${quantity}`);
+        await this.socketGateway.sendToAll("start", `🚀 [${keyword}] Vòng lặp ${i + 1}/${quantity}`)
         await this.executeOneRound(keyword, domain);
       }
-
+      await this.socketGateway.sendToAll("stop", `✅ Hoàn tất keyword: "${keyword}"`)
       console.log(`✅ Hoàn tất keyword: "${keyword}"`);
+
     }
     this.isRunning = false;
     console.log('🎯 Hoàn tất tất cả keyword!');
+    await this.socketGateway.sendToAll("stop", `🎯 Hoàn tất tất cả keyword!`)
   }
 
-  stop() {
+  async stop() {
     this.isRunning = false;
     console.log('🛑 Đã yêu cầu dừng tiến trình!');
+    await this.socketGateway.sendToAll("stop", `🛑 Đã yêu cầu dừng tiến trình!`)
   }
 
   async executeOneRound(keyword: string, domain: string) {
     // 👉 1. Mở trình duyệt (ví dụ click vào ô tìm kiếm & gõ google)
     await mouse.move(straightTo(new Point(200, 1600)));
     await mouse.click(Button.LEFT);
-    await keyboard.type("google");
+    await keyboard.type("google chrome");
     await keyboard.type(Key.Enter);
 
     // 👉 2. Click tài khoản Google
@@ -167,7 +176,7 @@ export class CommandService {
 
     for (let i = 0; i < 10 && !found; i++) {
       console.log(`🔍 Lần ${i + 1}: đang quét màn hình...`);
-
+      await this.socketGateway.sendToAll("start", `🔍 Lần ${i + 1}: đang quét màn hình...`)
       try {
         // 📸 Chụp ảnh màn hình
         const image: any = await screen.grab();
@@ -190,6 +199,8 @@ export class CommandService {
         );
         const text = data?.text?.toLowerCase() || "";
         if (text.includes("not a robot")) {
+          await this.socketGateway.sendToAll("robot", 1)
+          await this.socketGateway.sendToAll("start", `not a robot`)
           // ✅ Gán cờ để dừng vòng lặp
           found = true;
           await keyboard.pressKey(Key.LeftControl, Key.W);
@@ -197,7 +208,8 @@ export class CommandService {
         }
         if (text.includes(target.toLowerCase())) {
           console.log("✅ Đã thấy chữ:", target);
-
+          await this.socketGateway.sendToAll("start", "✅ Đã thấy chữ: " + target);
+          await this.socketGateway.sendToAll("success", 1)
           if (data.words && data.words.length) {
             for (const word of data.words) {
               if (word.text.toLowerCase().includes(target)) {
@@ -233,6 +245,7 @@ export class CommandService {
           }
         } else {
           console.log(`⤵️ Chưa thấy "${target}" — cuộn xuống ${scrollStep}px`);
+          await this.socketGateway.sendToAll("start", `⤵️ Chưa thấy "${target}" — cuộn xuống ${scrollStep}px`);
           try {
             await mouse.scrollDown(scrollStep);
           } catch (e) {
@@ -251,6 +264,8 @@ export class CommandService {
     }
 
     if (!found) {
+      await this.socketGateway.sendToAll("error", 1);
+      await this.socketGateway.sendToAll("start", "❌ Không tìm thấy: " + target);
       console.log("❌ Không tìm thấy:", target);
       console.log("⚠️ Đang tắt trình duyệt...");
       await keyboard.pressKey(Key.LeftControl, Key.W);

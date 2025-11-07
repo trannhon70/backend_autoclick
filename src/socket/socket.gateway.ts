@@ -36,4 +36,8 @@ export class SocketGateway
     console.log('📩 Received message:', data);
     this.server.emit('receive_message', data);
   }
+
+  sendToAll(event: string, data: any) {
+    this.server.emit(event, data);
+  }
 }
