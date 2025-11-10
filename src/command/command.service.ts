@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   Button,
+  clipboard,
   Key,
   keyboard,
   mouse,
@@ -149,7 +150,10 @@ export class CommandService {
     await mouse.move(straightTo(new Point(700, 350)));
 
     await mouse.click(Button.LEFT);
-    await keyboard.type(keyword);
+    // await keyboard.type(keyword);
+    await clipboard.setContent(keyword);
+    await keyboard.pressKey(Key.LeftControl, Key.V);
+    await keyboard.releaseKey(Key.LeftControl, Key.V);
     await keyboard.type(Key.Enter);
     await new Promise(r => setTimeout(r, 10000));
 
