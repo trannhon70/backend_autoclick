@@ -26,12 +26,12 @@ import { History, StatusEnum } from 'src/history/entities/history.entity';
 import { Repository } from 'typeorm';
 import { currentTimestamp } from 'src/utils';
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("📂 Đã tạo thư mục uploads tại:", uploadDir);
-} else {
-  console.log("📂 Thư mục uploads tồn tại:", uploadDir);
-}
+// if (!fs.existsSync(uploadDir)) {
+//   fs.mkdirSync(uploadDir, { recursive: true });
+//   console.log("📂 Đã tạo thư mục uploads tại:", uploadDir);
+// } else {
+//   console.log("📂 Thư mục uploads tồn tại:", uploadDir);
+// }
 
 
 
