@@ -11,19 +11,19 @@ async function bootstrap() {
   app.enableCors({
     origin: [process.env.URL_DEV_PRODUCTION, process.env.URL_DEV_LOCALHOST],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, 
+    credentials: true,
   });
 
   const proxyService = app.get(ProxyService);
 
   // Gửi chat mỗi 10 giây
   // setInterval(() => {
-    // proxyService.autoChat();
+  // proxyService.autoChat();
   // }, 60000);
 
   const configService = app.get(ConfigService);
-  const port  = configService.get('INTERNAL_APP_PORT')
-  
+  const port = configService.get('INTERNAL_APP_PORT')
+
   app.setGlobalPrefix('api');
   await app.listen(port);
 }

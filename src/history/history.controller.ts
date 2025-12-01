@@ -10,5 +10,9 @@ export class HistoryController {
     return await this.historyService.getAll();
   }
 
+  @Post('post')
+  async post() {
+    return await this.historyService.post();
+  }
 
 }
