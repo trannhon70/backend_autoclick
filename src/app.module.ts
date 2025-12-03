@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommandModule } from './command/command.module';
@@ -15,7 +15,10 @@ import { RoleModule } from './role/role.module';
 import { SocketModule } from './socket/socket.module';
 import { User } from './user/entities/user.entity';
 import { UserModule } from './user/user.module';
-
+import { Repository } from 'typeorm';
+import { currentTimestamp } from './utils';
+import * as bcrypt from 'bcryptjs';
+let saltOrRounds = 10;
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -34,6 +37,7 @@ import { UserModule } from './user/user.module';
       }),
       inject: [ConfigService]
     }),
+     TypeOrmModule.forFeature([Role, User]),
     RedisModule,
     SocketModule,
     CustomJwtModule,
@@ -47,4 +51,46 @@ import { UserModule } from './user/user.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+// export class AppModule { }
+export class AppModule implements OnModuleInit {
+  constructor(
+    @InjectRepository(Role)
+    private readonly roleRepo: Repository<Role>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) { }
+
+  async onModuleInit() {
+    // Seed roles
+    const roles = ['admin', 'student', 'teacher'];
+    const roleEntities: Record<string, Role> = {};
+
+    for (const roleName of roles) {
+      let role = await this.roleRepo.findOne({ where: { name: roleName } });
+      if (!role) {
+        role = this.roleRepo.create({
+          name: roleName,
+          created_at: currentTimestamp(), // hoặc currentTimestamp()
+        });
+        role = await this.roleRepo.save(role);
+      }
+      roleEntities[roleName] = role;
+    }
+
+    // Seed admin account
+    let adminUser = await this.userRepo.findOne({ where: { email: 'admin@gmail.com' } });
+    if (!adminUser) {
+      const password = await bcrypt.hash('123123@', saltOrRounds);
+      adminUser = this.userRepo.create({
+        email: 'admin@gmail.com',
+        password,
+        role: roleEntities['admin'],
+        created_at: currentTimestamp(),
+      });
+      await this.userRepo.save(adminUser);
+    }
+
+    console.log('✅ Default roles & users ready!');
+  }
+
+}
