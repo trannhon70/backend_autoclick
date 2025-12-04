@@ -1,0 +1,36 @@
+{
+
+	  "description": "WWProxy - https://www.facebook.com/wwproxy",
+	  "manifest_version": 3,
+	  "name": "WWProxy V1.2",
+	  "author": "WW",
+	  "version": "1.2",
+	  "homepage_url": "https://wwproxy.com/",
+	  "icons": {
+		"48": "icons/icon.png",
+		"96": "icons/icon96.png"
+	  },
+	
+	"action": {
+		"default_icon": "icons/icon.png",
+		"default_popup": "popup.html"
+	},
+	"host_permissions": ["https://wwproxy.com/*"],
+	"permissions": [
+		"notifications",
+		"storage",
+		"proxy"
+		
+	],
+	"minimum_chrome_version": "93",
+	"background": {
+		"service_worker": "js/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*"],
+      "js": ["main.js"]
+    }
+  ]
+
+}
