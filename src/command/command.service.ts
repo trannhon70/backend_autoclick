@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   Button,
+  clipboard,
   Key,
   keyboard,
   mouse,
@@ -20,20 +21,26 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import { SocketGateway } from 'src/socket/socket.gateway';
+import { InjectRepository } from '@nestjs/typeorm';
+import { History, StatusEnum } from 'src/history/entities/history.entity';
+import { Repository } from 'typeorm';
+import { currentTimestamp } from 'src/utils';
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("📂 Đã tạo thư mục uploads tại:", uploadDir);
-} else {
-  console.log("📂 Thư mục uploads tồn tại:", uploadDir);
-}
+// if (!fs.existsSync(uploadDir)) {
+//   fs.mkdirSync(uploadDir, { recursive: true });
+//   console.log("📂 Đã tạo thư mục uploads tại:", uploadDir);
+// } else {
+//   console.log("📂 Thư mục uploads tồn tại:", uploadDir);
+// }
 
 
 
 @Injectable()
 export class CommandService {
   constructor(
-    private readonly socketGateway: SocketGateway
+    private readonly socketGateway: SocketGateway,
+    @InjectRepository(History)
+    private readonly HistoryRepository: Repository<History>,
   ) { }
   private isRunning = false;
   private parseProxyString(proxyStr: string) {
@@ -144,7 +151,10 @@ export class CommandService {
     await mouse.move(straightTo(new Point(700, 350)));
 
     await mouse.click(Button.LEFT);
-    await keyboard.type(keyword);
+    // await keyboard.type(keyword);
+    await clipboard.setContent(keyword);
+    await keyboard.pressKey(Key.LeftControl, Key.V);
+    await keyboard.releaseKey(Key.LeftControl, Key.V);
     await keyboard.type(Key.Enter);
     await new Promise(r => setTimeout(r, 10000));
 
@@ -202,6 +212,7 @@ export class CommandService {
         if (text.includes("not a robot")) {
           await this.socketGateway.sendToAll("robot", 1)
           await this.socketGateway.sendToAll("start", `not a robot`)
+          await this.HistoryRepository.save({ created_at: currentTimestamp(), status: StatusEnum.ROBOT })
           // ✅ Gán cờ để dừng vòng lặp
           found = true;
           await keyboard.pressKey(Key.LeftControl, Key.W);
@@ -210,7 +221,8 @@ export class CommandService {
         if (text.includes(target.toLowerCase())) {
           console.log("✅ Đã thấy chữ:", target);
           await this.socketGateway.sendToAll("start", "✅ Đã thấy chữ: " + target);
-          await this.socketGateway.sendToAll("success", 1)
+          await this.socketGateway.sendToAll("success", 1);
+          await this.HistoryRepository.save({ created_at: currentTimestamp(), status: StatusEnum.SUCCESS })
           if (data.words && data.words.length) {
             for (const word of data.words) {
               if (word.text.toLowerCase().includes(target)) {
@@ -267,6 +279,7 @@ export class CommandService {
     if (!found) {
       await this.socketGateway.sendToAll("error", 1);
       await this.socketGateway.sendToAll("start", "❌ Không tìm thấy: " + target);
+      await this.HistoryRepository.save({ created_at: currentTimestamp(), status: StatusEnum.ERROR })
       console.log("❌ Không tìm thấy:", target);
       console.log("⚠️ Đang tắt trình duyệt...");
       await keyboard.pressKey(Key.LeftControl, Key.W);
