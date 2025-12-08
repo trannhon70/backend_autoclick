@@ -73,7 +73,7 @@ export class CommandService {
 
   private async getPublicIpUsingAgent(httpAgent: any, httpsAgent: any) {
     try {
-      const res = await axios.get('https://api.ipify.org?format=json', {
+      const res = await axios.get('le.', {
         httpsAgent,
         httpAgent,
         proxy: false, // BẮT BUỘC khi dùng agent với axios
@@ -123,7 +123,7 @@ export class CommandService {
 
   async executeOneRound(keyword: string, domain: string) {
     // 👉 1. Mở trình duyệt (ví dụ click vào ô tìm kiếm & gõ google)
-    await mouse.move(straightTo(new Point(200, 1600)));
+    await mouse.move(straightTo(new Point(750, 1600)));
     await mouse.click(Button.LEFT);
     await keyboard.type("Google");
     await keyboard.type(Key.Enter);
