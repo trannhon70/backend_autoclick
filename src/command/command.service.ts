@@ -125,9 +125,12 @@ export class CommandService {
     // 👉 1. Mở trình duyệt (ví dụ click vào ô tìm kiếm & gõ google)
     await mouse.move(straightTo(new Point(200, 1600)));
     await mouse.click(Button.LEFT);
-    await keyboard.type("google chrome");
+    await keyboard.type("Google");
     await keyboard.type(Key.Enter);
-
+    // await clipboard.setContent("Google chrome");
+    // await keyboard.pressKey(Key.LeftControl, Key.V);
+    // await keyboard.releaseKey(Key.LeftControl, Key.V);
+    // await keyboard.type(Key.Enter);
     // 👉 2. Click tài khoản Google
     await mouse.move(straightTo(new Point(700, 500)));
     await mouse.click(Button.LEFT);
@@ -138,16 +141,19 @@ export class CommandService {
     // 👉 4. Gõ google.com
     await mouse.move(straightTo(new Point(200, 70)));
     await mouse.click(Button.LEFT);
-    await keyboard.type("google.com");
+    // await keyboard.type("google.com");
+    // await keyboard.type(Key.Enter);
+    await clipboard.setContent("google.com");
+    await keyboard.pressKey(Key.LeftControl, Key.V);
+    await keyboard.releaseKey(Key.LeftControl, Key.V);
     await keyboard.type(Key.Enter);
-
 
     //click sign in 
     // await mouse.move(straightTo(new Point(1060, 350)));
     // await mouse.click(Button.LEFT);
     await new Promise(r => setTimeout(r, 3000));
     // 👉 5. Gõ từ khóa
-    await mouse.move(straightTo(new Point(700, 350)));
+    await mouse.move(straightTo(new Point(700, 450)));
 
     await mouse.click(Button.LEFT);
     // await keyboard.type(keyword);
@@ -184,7 +190,7 @@ export class CommandService {
     const scrollStep = 600; // pixels mỗi lần cuộn
     const postScrollWait = 1200; // ms đợi render sau mỗi lần cuộn
 
-    for (let i = 0; i < 10 && !found; i++) {
+    for (let i = 0; i < 4 && !found; i++) {
       console.log(`🔍 Lần ${i + 1}: đang quét màn hình...`);
       await this.socketGateway.sendToAll("start", `🔍 Lần ${i + 1}: đang quét màn hình...`)
       try {
@@ -239,16 +245,16 @@ export class CommandService {
 
                 await mouse.move(straightTo(new Point(clickX, clickY)));
                 await mouse.click(Button.LEFT);
-                await new Promise(r => setTimeout(r, 1000)); // đợi load nội dung
-                for (let i = 0; i < 10; i++) {
-                  await mouse.scrollDown(400);
-                  await new Promise(r => setTimeout(r, 400));
-                }
-                await new Promise(r => setTimeout(r, 1000)); // đợi load nội dung
+                await new Promise(r => setTimeout(r, 700)); // đợi load nội dung
+                // for (let i = 0; i < 10; i++) {
+                //   await mouse.scrollDown(400);
+                //   await new Promise(r => setTimeout(r, 400));
+                // }
+                // await new Promise(r => setTimeout(r, 1000)); // đợi load nội dung
                 // ✅ Gán cờ để dừng vòng lặp
                 found = true;
-                await keyboard.pressKey(Key.LeftControl, Key.W);
-                await keyboard.releaseKey(Key.LeftControl, Key.W);
+                await keyboard.pressKey(Key.LeftControl, Key.LeftShift, Key.W);
+                await keyboard.releaseKey(Key.LeftControl, Key.LeftShift, Key.W);
                 break;
               }
             }
@@ -259,7 +265,17 @@ export class CommandService {
           console.log(`⤵️ Chưa thấy "${target}" — cuộn xuống ${scrollStep}px`);
           await this.socketGateway.sendToAll("start", `⤵️ Chưa thấy "${target}" — cuộn xuống ${scrollStep}px`);
           try {
-            await mouse.scrollDown(scrollStep);
+
+            if (i === 1) {
+              await keyboard.pressKey(Key.End);
+              await new Promise(res => setTimeout(res, 1500)); // giữ End
+              await keyboard.releaseKey(Key.End);
+            } else if (i >= 2) {
+              await mouse.scrollUp(scrollStep);
+            } else {
+              await mouse.scrollDown(scrollStep);
+            }
+
           } catch (e) {
             console.warn("⚠️ mouse.scrollDown lỗi, thử dùng PageDown");
             await keyboard.pressKey(Key.PageDown);
