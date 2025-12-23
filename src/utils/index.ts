@@ -16,19 +16,22 @@ export function currentTimestamp() {
 export function getTodayRangeVN() {
     const now = new Date();
 
-    // Lấy giờ Việt Nam (UTC+7)
-    const vnOffset = 7 * 60 * 60 * 1000;
-    const local = new Date(now.getTime() + vnOffset);
+    // Lấy thời gian hiện tại theo giờ Việt Nam
+    const vnNow = new Date(
+        now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+    );
 
-    const start = new Date(local);
-    start.setHours(0, 0, 0, 0);
+    // Bắt đầu ngày (00:00:00 VN)
+    const startVN = new Date(vnNow);
+    startVN.setHours(0, 0, 0, 0);
 
-    const end = new Date(local);
-    end.setHours(23, 59, 59, 999);
+    // Kết thúc ngày (23:59:59.999 VN)
+    const endVN = new Date(vnNow);
+    endVN.setHours(23, 59, 59, 999);
 
-    // Chuyển về UTC timestamp (giây)
+    // Trả về timestamp UTC (giây)
     return {
-        start: Math.floor((start.getTime() - vnOffset) / 1000),
-        end: Math.floor((end.getTime() - vnOffset) / 1000),
+        start: Math.floor(startVN.getTime() / 1000),
+        end: Math.floor(endVN.getTime() / 1000),
     };
 }
