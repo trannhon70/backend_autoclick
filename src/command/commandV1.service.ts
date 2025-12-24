@@ -51,18 +51,20 @@ export class CommandServiceV1 {
           await this.socketGateway.sendToAll('start', keyword);
 
           const found = await this.executeOneRound(keyword, domain);
-          console.log(found, 'found');
 
-          if (found === undefined) {
+          if (!found) {
             failMap[keyword]++;
             console.log(
               `❌ Không tìm thấy "${keyword}" (${failMap[keyword]}/2)`,
             );
             await this.sleep(1000);
+            if (failMap[keyword] >= 2) {
+              break;
+            }
           } else {
             console.log(`✅ Tìm thấy "${keyword}"`);
             failMap[keyword] = 0; // reset fail
-            break; // sang keyword tiếp theo
+            await this.sleep(1000);
           }
         }
 
@@ -125,10 +127,11 @@ export class CommandServiceV1 {
     await new Promise((r) => setTimeout(r, 10000));
 
     // 👉 6. Scroll tìm domain
-    await this.findAndScroll(domain);
+    const resutl = await this.findAndScroll(domain);
 
     // 👉 8. Chờ một chút để chuẩn bị vòng sau
     await new Promise((r) => setTimeout(r, 2000));
+    return resutl;
   }
 
   async findAndScroll(target: any) {
@@ -147,7 +150,7 @@ export class CommandServiceV1 {
     const scrollStep = 600; // pixels mỗi lần cuộn
     const postScrollWait = 1200; // ms đợi render sau mỗi lần cuộn
 
-    for (let i = 0; i < 4 && !found; i++) {
+    for (let i = 0; i < 5 && !found; i++) {
       console.log(`🔍 Lần ${i + 1}: đang quét màn hình...`);
       await this.socketGateway.sendToAll(
         'start',
@@ -193,7 +196,7 @@ export class CommandServiceV1 {
           await keyboard.releaseKey(Key.LeftControl, Key.W);
         }
 
-        const isMatch = target.some((t) => text.includes(t.toLowerCase()));
+        const isMatch = target.some((t: any) => text.includes(t.toLowerCase()));
         if (isMatch) {
           console.log('✅ Đã thấy chữ:', target);
           await this.socketGateway.sendToAll(
@@ -207,7 +210,10 @@ export class CommandServiceV1 {
           });
           if (data.words && data.words.length) {
             for (const word of data.words) {
-              if (word.text.toLowerCase().includes(target)) {
+              const matchedTarget = target.find((t) =>
+                word.text.toLowerCase().includes(t.toLowerCase()),
+              );
+              if (matchedTarget) {
                 // console.log('📍 Tìm thấy từ:', word.text, word.bbox);
                 const { x0, y0, x1, y1 } = word.bbox;
                 const scaleX = image.width / (image.width * 2); // = 0.5
@@ -251,11 +257,11 @@ export class CommandServiceV1 {
             `⤵️ Chưa thấy "${target}" — cuộn xuống ${scrollStep}px`,
           );
           try {
-            if (i === 1) {
+            if (i === 2) {
               await keyboard.pressKey(Key.End);
-              await new Promise((res) => setTimeout(res, 1500)); // giữ End
+              await new Promise((res) => setTimeout(res, 2000)); // giữ End
               await keyboard.releaseKey(Key.End);
-            } else if (i >= 2) {
+            } else if (i >= 3) {
               await mouse.scrollUp(scrollStep);
             } else {
               await mouse.scrollDown(scrollStep);
@@ -292,5 +298,6 @@ export class CommandServiceV1 {
     }
 
     await worker.terminate();
+    return found;
   }
 }
