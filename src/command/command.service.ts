@@ -123,7 +123,7 @@ export class CommandService {
 
   async executeOneRound(keyword: string, domain: string) {
     // 👉 1. Mở trình duyệt (ví dụ click vào ô tìm kiếm & gõ google)
-    await mouse.move(straightTo(new Point(750, 1600)));
+    await mouse.move(straightTo(new Point(200, 1600)));
     await mouse.click(Button.LEFT);
     await keyboard.type("Google");
     await keyboard.type(Key.Enter);
